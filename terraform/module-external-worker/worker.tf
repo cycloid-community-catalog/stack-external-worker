@@ -144,7 +144,7 @@ resource "aws_cloudformation_stack" "worker" {
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MinInstancesInService": "1",
+          "MinInstancesInService": "${var.worker_asg_min_size == 1 ? 0 : 1}",
           "MinSuccessfulInstancesPercent": "50",
           "SuspendProcesses": ["ScheduledActions"],
           "MaxBatchSize": "2",
