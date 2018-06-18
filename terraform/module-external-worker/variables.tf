@@ -1,14 +1,5 @@
 data "aws_region" "current" {}
 
-variable "external_worker_image" {
-  default = "concourse/concourse:3.9.2"
-}
-
-variable "scheduler_host" {}
-variable "scheduler_port" {}
-variable "worker_ssh_prv" {}
-variable "worker_ssh_pub" {}
-
 variable "bastion_sg_allow" {
   default = ""
 }
@@ -63,8 +54,6 @@ variable "vpc_id" {}
 #
 # worker
 #
-variable "worker_svc_count" {}
-
 variable "worker_count" {}
 variable "worker_spot_price" {}
 
@@ -93,7 +82,7 @@ variable "worker_type" {}
 variable "worker_ebs_optimized" {}
 
 variable "worker_associate_public_ip_address" {
-  default = false
+  default = true
 }
 
 variable "worker_asg_min_size" {

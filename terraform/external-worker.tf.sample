@@ -20,8 +20,6 @@ module "external-worker" {
   private_subnets_ids     = "${data.terraform_remote_state.infrastructure.($ environment $)_private_subnets}"
   public_subnets_ids      = "${data.terraform_remote_state.infrastructure.($ environment $)_public_subnets}"
   vpc_id                  = "${data.terraform_remote_state.infrastructure.($ environment $)_vpc_id}"
-  # Number of containers
-  worker_svc_count                  = 2
   # Number of nodes
   worker_count                      = 2
   worker_disk_size                  = 20
@@ -32,4 +30,5 @@ module "external-worker" {
   worker_type                       = "m3.medium"
   worker_asg_min_size               = 1
   worker_asg_max_size               = 6
+  worker_spot_price       = "0.3"
 }

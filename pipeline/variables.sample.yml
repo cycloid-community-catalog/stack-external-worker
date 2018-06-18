@@ -7,10 +7,12 @@ aws_access_key: ((aws.access_key))
 aws_secret_key: ((aws.secret_key))
 aws_default_region: eu-west-1
 
-terraform_storage_bucket_name: ($ project $)-terraform-remote-state
+terraform_storage_bucket_name: ($ organization_canonical $)-terraform-remote-state
 terraform_storage_bucket_path: ($ project $)/($ environment $)
 
 scheduler_api_address: https://myscheduler.com
+scheduler_host: "myscheduler.com"
+scheduler_port: "2222"
 
 external-worker_config_git_repository: ssh://APKAJ5QY5LYZNMX5
 external-worker_config_git_branch: config
@@ -25,5 +27,6 @@ packer_ansible_version: "2.4.3"
 # Which currently correspond to concourse parameters : 
 #          --tsa-public-key=                                  File containing a public key to expect from the TSA. [$CONCOURSE_TSA_PUBLIC_KEY]
 #          --tsa-worker-private-key=                          File containing the private key to use when authenticating to the TSA. [$CONCOURSE_TSA_WORKER_PRIVATE_KEY]
-worker_keys_path: external_worker_key
+external_worker_key: external_worker_key
 
+debug_public_key: "ssh-rsa ..."

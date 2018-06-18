@@ -73,7 +73,7 @@
     {
         "type": "ansible-local",
         "galaxy_file": "./requirements.yml",
-        "playbook_file": "./{{user `project`}}.yml",
+        "playbook_file": "./external-worker.yml",
         "playbook_dir": "./",
         "staging_directory": "/home/admin/{{user `project`}}",
         "extra_arguments": [

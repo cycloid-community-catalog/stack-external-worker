@@ -8,9 +8,9 @@
   name: dj-wasabi.telegraf
   scm: git
 
-- src: https://github.com/cycloidio/ansible-ecs
+- src: https://github.com/cycloidio/ansible-concourse
   version: master
-  name: cycloid.ecs
+  name: cycloid.concourse
   scm: git
 
 - src: https://github.com/geerlingguy/ansible-role-docker
@@ -23,3 +23,12 @@
   name: cycloid.systemd
   scm: git
 
+- src: https://github.com/cycloidio/ansible-fluentd
+  version: master
+  name: cycloid.fluentd
+  scm: git
+
+- src: https://github.com/nickhammond/ansible-logrotate
+  version: master
+  name: nickhammond.ansible-logrotate
+  scm: git

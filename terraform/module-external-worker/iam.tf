@@ -15,7 +15,7 @@ data "aws_iam_policy_document" "assume_role" {
 
 # Create IAM Role for worker
 resource "aws_iam_role" "worker" {
-  name               = "${var.env}-worker"
+  name               = "worker-${var.project}-${var.env}"
   assume_role_policy = "${data.aws_iam_policy_document.assume_role.json}"
   path               = "/${var.project}/"
 }
@@ -87,25 +87,16 @@ resource "aws_iam_role_policy_attachment" "cloudformation-signal" {
 }
 
 #
-# Ecs cluster policy
+# policy
 #
 
-data "aws_iam_policy_document" "ecs-instances" {
+data "aws_iam_policy_document" "workers" {
   statement {
     actions = [ 
-        "ecs:CreateCluster",
-        "ecs:DeregisterContainerInstance",
-        "ecs:DiscoverPollEndpoint",
-        "ecs:Poll",
-        "ecs:RegisterContainerInstance",
-        "ecs:StartTelemetrySession",
-        "ecs:Submit*",
         "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
         "ecr:BatchGetImage",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
     ]   
     effect = "Allow"
     resources = [ 
@@ -114,15 +105,59 @@ data "aws_iam_policy_document" "ecs-instances" {
   }
 }
 
-
-resource "aws_iam_policy" "ecs-instances" {
-  name        = "${var.env}-${var.project}-ecs-instances"
+resource "aws_iam_policy" "workers" {
+  name        = "${var.env}-${var.project}-workers"
   path        = "/"
-  description = "Allow ecs-instances instances to register in ecs cluster for worker"
-  policy      = "${data.aws_iam_policy_document.ecs-instances.json}"
+  policy      = "${data.aws_iam_policy_document.workers.json}"
 }
 
-resource "aws_iam_role_policy_attachment" "ecs-instances" {
+resource "aws_iam_role_policy_attachment" "workers" {
   role       = "${aws_iam_role.worker.name}"
-  policy_arn = "${aws_iam_policy.ecs-instances.arn}"
+  policy_arn = "${aws_iam_policy.workers.arn}"
 }
+
+# Logs
+data "aws_iam_policy_document" "push-logs" {
+  statement {
+    effect  = "Allow"
+    actions = [
+      "logs:UntagLogGroup",
+      "logs:TagLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:PutLogEvents",
+      "logs:DeleteRetentionPolicy",
+      "logs:CreateLogStream"
+    ]
+    resources = ["arn:aws:logs:*:*:log-group:${var.project}_${var.env}:*"]
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = [
+      "logs:ListTagsLogGroup",
+      "logs:DescribeSubscriptionFilters",
+      "logs:DescribeMetricFilters",
+      "logs:DescribeLogStreams",
+      "logs:DescribeLogGroups",
+      "logs:TestMetricFilter",
+      "logs:DescribeResourcePolicies",
+      "logs:DescribeExportTasks",
+      "logs:DescribeDestinations",
+      "logs:CreateLogGroup"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "push-logs" {
+  name        = "${var.env}-${var.project}-push-logs"
+  path        = "/"
+  description = "Push log to cloudwatch"
+  policy      = "${data.aws_iam_policy_document.push-logs.json}"
+}
+
+resource "aws_iam_role_policy_attachment" "push-logs" {
+  role      = "${aws_iam_role.worker.name}"
+  policy_arn = "${aws_iam_policy.push-logs.arn}"
+}
+

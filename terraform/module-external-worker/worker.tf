@@ -125,7 +125,7 @@ resource "aws_cloudformation_stack" "worker" {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
         "AvailabilityZones": ${jsonencode(var.zones)},
-        "VPCZoneIdentifier": ${jsonencode(var.private_subnets_ids)},
+        "VPCZoneIdentifier": ${jsonencode(var.public_subnets_ids)},
         "LaunchConfigurationName": "${aws_launch_configuration.worker.name}",
         "MaxSize": "${var.worker_asg_max_size}",
         "DesiredCapacity" : "${var.worker_count}",
@@ -144,7 +144,7 @@ resource "aws_cloudformation_stack" "worker" {
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MinInstancesInService": "1",
+          "MinInstancesInService": "0",
           "MinSuccessfulInstancesPercent": "50",
           "SuspendProcesses": ["ScheduledActions"],
           "MaxBatchSize": "2",

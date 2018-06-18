@@ -4,6 +4,9 @@
   connection: local
   remote_user: root
   become: yes
+  vars_files:
+    - "default.yml"
+    - [ "{{ env }}-front.yml", "empty.yml" ]
   tasks:
     - template:
         src: first-boot.yml.tpl

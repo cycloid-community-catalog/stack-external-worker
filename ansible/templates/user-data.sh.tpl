@@ -34,7 +34,7 @@ export ANSIBLE_REMOTE_TEMP=$HOME/.ansible/tmp
 
 ANSIBLE_PLAYBOOK="/home/admin/first-boot.yml"
 # Path is related to https://github.com/cycloidio/ansible-customer-ssh/blob/master/tasks/main.yml#L32
-ANSIBLE_DEPLOYMENT_PLAYBOOK="/home/admin/${PROJECT}/${PROJECT}.yml"
+ANSIBLE_DEPLOYMENT_PLAYBOOK="/home/admin/${PROJECT}/external-worker.yml"
 
 # Output both to stdout and to ${LOG_FILE}
 exec &> >(tee -a ${LOG_FILE})
@@ -98,4 +98,4 @@ log "Finished running code deployment"
 log "Removing playbooks"
 rm -fr /home/admin/first-boot.yml /home/admin/${PROJECT} ${ANSIBLE_LOCAL_TEMP} -rf
 log "Finishing ${0} script and removing it"
-#rm ${0}
+rm ${0}
