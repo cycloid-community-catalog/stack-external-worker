@@ -24,3 +24,8 @@ config:
     external-worker:
       path: 'terraform/external-worker.tf.sample'
       destination: '($ project $)/terraform/($ environment $)/external-worker.tf'
+
+  ansible:
+    external-worker:
+      path: 'ansible/variables.yml.sample'
+      destination: '($ project $)/ansible/($ environment $)-worker.yml'

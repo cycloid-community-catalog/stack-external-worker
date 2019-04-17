@@ -36,11 +36,12 @@ variable "short_region" {
 }
 
 variable "keypair_name" {
-  default = "cycloid"
+  default = "cycloid-external-worker"
 }
 
 variable "private_subnets_ids" {
-  type = "list"
+  type    = "list"
+  default = []
 }
 
 variable "public_subnets_ids" {
@@ -58,7 +59,9 @@ variable "vpc_id" {}
 #
 variable "worker_count" {}
 
-variable "worker_spot_price" {}
+variable "worker_spot_price" {
+  default = "0.3"
+}
 
 variable "worker_extra_args" {
   default = ""
@@ -73,7 +76,7 @@ variable "worker_disk_type" {
 }
 
 variable "worker_volume_disk_size" {
-  default = "50"
+  default = "100"
 }
 
 variable "worker_volume_disk_type" {
@@ -92,9 +95,13 @@ variable "worker_launch_template_latest_version" {
   default = ""
 }
 
-variable "worker_type" {}
+variable "worker_type" {
+  default = "c5d.2xlarge"
+}
 
-variable "worker_ebs_optimized" {}
+variable "worker_ebs_optimized" {
+  default = true
+}
 
 variable "worker_associate_public_ip_address" {
   default = true

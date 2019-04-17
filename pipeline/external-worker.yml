@@ -68,23 +68,25 @@ groups:
 
 - name: all
   jobs:
-  - terraform-plan-((project))-((env))
-  - terraform-apply-((project))-((env))
-  - build-ami-((project))-worker-((env))
-  #- terraform-apply-((project))-worker-launchconfig-((env))
-  - deploy-((project))-((env))
-  - clean-worker-ami
+  - terraform-plan
+  - terraform-apply
+  - build-worker-ami
+  - deploy
+  - clean-old-worker-ami
 
-- name: terraform-((project))-((env))
+- name: terraform
   jobs:
-  - terraform-plan-((project))-((env))
-  - terraform-apply-((project))-((env))
+  - terraform-plan
+  - terraform-apply
 
-- name: ((project))-((env))
+- name: worker
   jobs:
-  - build-ami-((project))-worker-((env))
-  #- terraform-apply-((project))-worker-launchconfig-((env))
-  - deploy-((project))-((env))
+  - build-worker-ami
+  - deploy
+
+- name: destroy
+  jobs:
+  - terraform-destroy
 
 resource_types:
 
@@ -102,7 +104,7 @@ resource_types:
 resources:
 
 # Terraform by itself
-- name: terraform-((project))-((env))
+- name: tfstate
   type: terraform
   source:
     storage:
@@ -124,49 +126,49 @@ resources:
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
 
 # The Terraform stack (will be merged with the config)
-- name: ((project))-stack-terraform
+- name: git_stack-terraform
   type: git
   check_every: 2m
   source:
     uri: https://github.com/cycloid-community-catalog/stack-external-worker
-    branch: ((external-worker_stack_git_branch))
+    branch: ((stack_git_branch))
     paths:
       - terraform/*
 
 # The Terraform config (will be merged with the stack)
-- name: ((project))-config-terraform
+- name: git_config-terraform
   type: git
   check_every: 2m
   source:
-    uri: ((external-worker_config_git_repository))
-    branch: ((external-worker_config_git_branch))
-    private_key: ((external-worker_config_git_key))
+    uri: ((config_git_repository))
+    branch: ((config_git_branch))
+    private_key: ((config_git_private_key))
     paths:
       - ((project))/terraform/((env))/*
 
 # The Ansible stack (will be merged with the config)
-- name: ((project))-stack-ansible
+- name: git_stack-ansible
   type: git
   check_every: 2m
   source:
     uri: https://github.com/cycloid-community-catalog/stack-external-worker
-    branch: ((external-worker_stack_git_branch))
+    branch: ((stack_git_branch))
     paths:
       - ansible/*
 
 # The Ansible config (will be merged with the stack)
-- name: ((project))-config-ansible
+- name: git_config-ansible
   type: git
   check_every: 2m
   source:
-    uri: ((external-worker_config_git_repository))
-    branch: ((external-worker_config_git_branch))
-    private_key: ((external-worker_config_git_key))
+    uri: ((config_git_repository))
+    branch: ((config_git_branch))
+    private_key: ((config_git_private_key))
     paths:
       - ((project))/ansible/*
 
 # The AMI builder for the worker servers (for ASG scale-up)
-- name: ((project))-worker-build-ami
+- name: ami_worker
   type: packer
   source:
     aws_access_key_id: ((aws_access_key))
@@ -176,28 +178,28 @@ resources:
 jobs:
 
 # Build a new AMI whenever there is a change in Ansible
-- name: build-ami-((project))-worker-((env))
+- name: build-worker-ami
   max_in_flight: 1
   build_logs_to_retain: 10
   plan:
   - do:
 
-    - get: ((project))-stack-ansible
+    - get: git_stack-ansible
       trigger: true
-    - get: ((project))-config-ansible
+    - get: git_config-ansible
       trigger: true
 
     - task: merge-stack-and-config
       config:
         <<: *merge-stack-and-config
         inputs:
-        - name: ((project))-config-ansible
+        - name: git_config-ansible
           path: "config"
-        - name: ((project))-stack-ansible
+        - name: git_stack-ansible
           path: "stack"
       params:
         SCHEDULER_API_ADDRESS: ((scheduler_api_address))
-        CONFIG_PATH: ((external-worker_config_ansible_path))
+        CONFIG_PATH: ((config_ansible_path))
         STACK_PATH: ansible
         EXTRA_ANSIBLE_VARS:
             concourse_tsa_port: ((scheduler_port))
@@ -205,7 +207,7 @@ jobs:
             concourse_tsa_public_key: ((((external_worker_key)).ssh_pub))
             concourse_tsa_worker_key: ((((external_worker_key)).ssh_prv))
 
-    - put: ((project))-worker-build-ami
+    - put: ami_worker
       params:
         template: merged-stack/packer_template.json
         env: ((env))
@@ -218,34 +220,34 @@ jobs:
         ansible_version: ((packer_ansible_version))
 
 # Merge and trigger a plan whenever there is a commit in Terraform stack or config
-- name: terraform-plan-((project))-((env))
+- name: terraform-plan
   max_in_flight: 1
   build_logs_to_retain: 10
   plan:
     - do:
-      - get: ((project))-worker-build-ami
+      - get: ami_worker
         passed:
-          - build-ami-((project))-worker-((env))
-      - get: ((project))-stack-terraform
+          - build-worker-ami
+      - get: git_stack-terraform
         trigger: true
-      - get: ((project))-config-terraform
+      - get: git_config-terraform
         trigger: true
 
       - task: merge-stack-and-config
         config:
           <<: *merge-stack-and-config
           inputs:
-          - name: ((project))-config-terraform
+          - name: git_config-terraform
             path: "config"
-          - name: ((project))-stack-terraform
+          - name: git_stack-terraform
             path: "stack"
         params:
-          CONFIG_PATH: ((external-worker_config_terraform_path))
+          CONFIG_PATH: ((config_terraform_path))
           STACK_PATH: terraform
 
       - *extract-vars
 
-      - put: terraform-((project))-((env))
+      - put: tfstate
         params:
           env_name: ((project))-((env))
           plan_only: true
@@ -254,38 +256,38 @@ jobs:
               - extracted-vars/terraform.tfvars
 
 # Merge and trigger an apply manually (no autostart of this job)
-- name: terraform-apply-((project))-((env))
+- name: terraform-apply
   build_logs_to_retain: 10
   plan:
     - do:
-      - get: ((project))-stack-terraform
+      - get: git_stack-terraform
         trigger: false
         passed:
-          - terraform-plan-((project))-((env))
-      - get: ((project))-config-terraform
+          - terraform-plan
+      - get: git_config-terraform
         trigger: false
         passed:
-          - terraform-plan-((project))-((env))
-      - get: terraform-((project))-((env))
+          - terraform-plan
+      - get: tfstate
         trigger: false
         passed:
-          - terraform-plan-((project))-((env))
+          - terraform-plan
 
       - task: merge-stack-and-config
         config:
           <<: *merge-stack-and-config
           inputs:
-          - name: ((project))-config-terraform
+          - name: git_config-terraform
             path: "config"
-          - name: ((project))-stack-terraform
+          - name: git_stack-terraform
             path: "stack"
         params:
-          CONFIG_PATH: ((external-worker_config_terraform_path))
+          CONFIG_PATH: ((config_terraform_path))
           STACK_PATH: terraform
 
       - *extract-vars
 
-      - put: terraform-((project))-((env))
+      - put: tfstate
         params:
           env_name: ((project))-((env))
           run_plan: true
@@ -294,45 +296,45 @@ jobs:
               - extracted-vars/terraform.tfvars
 
 # Merge and trigger an apply manually (no autostart of this job)
-- name: deploy-((project))-((env))
+- name: deploy
   build_logs_to_retain: 10
   plan:
     - do:
-      - get: ((project))-worker-build-ami
+      - get: ami_worker
         passed:
-          - build-ami-((project))-worker-((env))
+          - build-worker-ami
         trigger: false
 
-      - get: ((project))-stack-terraform
+      - get: git_stack-terraform
         trigger: false
         passed:
-          - terraform-apply-((project))-((env))
+          - terraform-apply
 
-      - get: ((project))-config-terraform
+      - get: git_config-terraform
         trigger: false
         passed:
-          - terraform-apply-((project))-((env))
+          - terraform-apply
 
-      - get: terraform-((project))-((env))
+      - get: tfstate
         trigger: false
         passed:
-          - terraform-apply-((project))-((env))
+          - terraform-apply
 
       - task: merge-stack-and-config
         config:
           <<: *merge-stack-and-config
           inputs:
-          - name: ((project))-config-terraform
+          - name: git_config-terraform
             path: "config"
-          - name: ((project))-stack-terraform
+          - name: git_stack-terraform
             path: "stack"
         params:
-          CONFIG_PATH: ((external-worker_config_terraform_path))
+          CONFIG_PATH: ((config_terraform_path))
           STACK_PATH: terraform
 
       - *extract-vars
 
-      - put: terraform-((project))-((env))
+      - put: tfstate
         params:
           env_name: ((project))-((env))
           run_plan: true
@@ -340,12 +342,54 @@ jobs:
           var_files:
               - extracted-vars/terraform.tfvars
 
-- name: clean-worker-ami
+- name: clean-old-worker-ami
   plan:
   - do:
-    - get: ((project))-worker-build-ami
+    - get: ami_worker
       passed:
-        - deploy-((project))-((env))
+        - deploy
       trigger: true
 
     - *aws-ami-cleaner
+
+- name: terraform-destroy
+  serial: True
+  build_logs_to_retain: 10
+  plan:
+    - do:
+      - get: git_stack-terraform
+        trigger: false
+        passed:
+          - terraform-apply
+      - get: git_config-terraform
+        trigger: false
+        passed:
+          - terraform-apply
+      - get: tfstate
+        trigger: false
+        passed:
+          - terraform-apply
+
+      - task: merge-stack-and-config
+        config:
+          <<: *merge-stack-and-config
+          inputs:
+          - name: git_config-terraform
+            path: "config"
+          - name: git_stack-terraform
+            path: "stack"
+        params:
+          CONFIG_PATH: ((config_terraform_path))
+          STACK_PATH: terraform
+
+      - *extract-vars
+
+      - put: tfstate
+        params:
+          env_name: ((project))-((env))
+          action: destroy
+          terraform_source: merged-stack/
+          var_files:
+              - extracted-vars/terraform.tfvars
+        get_params:
+          action: destroy

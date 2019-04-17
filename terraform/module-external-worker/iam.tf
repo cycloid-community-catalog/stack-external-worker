@@ -20,12 +20,10 @@ resource "aws_iam_role" "worker" {
   path               = "/${var.project}/"
 }
 
-
 resource "aws_iam_instance_profile" "worker_profile" {
   name = "profile-worker-${var.project}-${var.env}"
   role = "${aws_iam_role.worker.name}"
 }
-
 
 #
 # ec2 tag list policy
@@ -51,7 +49,6 @@ resource "aws_iam_policy" "ec2-tag-describe" {
 resource "aws_iam_role_policy_attachment" "ec2-tag-describe" {
   role       = "${aws_iam_role.worker.name}"
   policy_arn = "${aws_iam_policy.ec2-tag-describe.arn}"
-
 }
 
 #
@@ -92,23 +89,25 @@ resource "aws_iam_role_policy_attachment" "cloudformation-signal" {
 
 data "aws_iam_policy_document" "workers" {
   statement {
-    actions = [ 
-        "ecr:GetAuthorizationToken",
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-    ]   
+    actions = [
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+    ]
+
     effect = "Allow"
-    resources = [ 
+
+    resources = [
       "*",
-    ]   
+    ]
   }
 }
 
 resource "aws_iam_policy" "workers" {
-  name        = "${var.env}-${var.project}-workers"
-  path        = "/"
-  policy      = "${data.aws_iam_policy_document.workers.json}"
+  name   = "${var.env}-${var.project}-workers"
+  path   = "/"
+  policy = "${data.aws_iam_policy_document.workers.json}"
 }
 
 resource "aws_iam_role_policy_attachment" "workers" {
@@ -119,20 +118,23 @@ resource "aws_iam_role_policy_attachment" "workers" {
 # Logs
 data "aws_iam_policy_document" "push-logs" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
+
     actions = [
       "logs:UntagLogGroup",
       "logs:TagLogGroup",
       "logs:PutRetentionPolicy",
       "logs:PutLogEvents",
       "logs:DeleteRetentionPolicy",
-      "logs:CreateLogStream"
+      "logs:CreateLogStream",
     ]
+
     resources = ["arn:aws:logs:*:*:log-group:${var.project}_${var.env}:*"]
   }
 
   statement {
-    effect  = "Allow"
+    effect = "Allow"
+
     actions = [
       "logs:ListTagsLogGroup",
       "logs:DescribeSubscriptionFilters",
@@ -143,8 +145,9 @@ data "aws_iam_policy_document" "push-logs" {
       "logs:DescribeResourcePolicies",
       "logs:DescribeExportTasks",
       "logs:DescribeDestinations",
-      "logs:CreateLogGroup"
+      "logs:CreateLogGroup",
     ]
+
     resources = ["*"]
   }
 }
@@ -157,7 +160,6 @@ resource "aws_iam_policy" "push-logs" {
 }
 
 resource "aws_iam_role_policy_attachment" "push-logs" {
-  role      = "${aws_iam_role.worker.name}"
+  role       = "${aws_iam_role.worker.name}"
   policy_arn = "${aws_iam_policy.push-logs.arn}"
 }
-
