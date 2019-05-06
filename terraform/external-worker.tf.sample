@@ -59,7 +59,7 @@ module "external-worker" {
   # worker_launch_template_latest_version = "${aws_launch_template.worker.latest_version}"
 
   #. worker_type (optional): c5d.2xlarge
-  #+ Type of Aws EC2 worker servers. This will be used for "spot" and "ondemand" launch config templates
+  #+ Type of AWS EC2 worker servers. This will be used for `spot` and `ondemand` launch config templates.
   worker_type                       = "c5d.2xlarge"
 
   #. worker_asg_min_size (optional): 1
