@@ -63,7 +63,7 @@ module "external-worker" {
   worker_type                       = "c5d.2xlarge"
 
   #. worker_asg_min_size (optional): 1
-  #+ Amazon autoscaling group min size configuration
+  #+ Amazon Auto Scaling Group min size configuration.
 
   #. worker_asg_max_size (optional): 6
   #+ Amazon autoscaling group max size configuration
