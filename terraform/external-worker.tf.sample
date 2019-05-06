@@ -66,7 +66,7 @@ module "external-worker" {
   #+ Amazon Auto Scaling Group min size configuration.
 
   #. worker_asg_max_size (optional): 6
-  #+ Amazon autoscaling group max size configuration
+  #+ Amazon Auto Scaling Group max size configuration.
 
   #. worker_spot_price (optional): 0.3
   #+ The maximum hourly price you're willing to pay for the Spot Instances. Linked to instance type
