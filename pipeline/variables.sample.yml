@@ -44,7 +44,7 @@ scheduler_port: "2222"
 #. external_worker_key (required, cycloid_creds_name): cycloid-worker-keys
 #+ Name of the Cycloid credential containing a public and a private SSH key to configure Cycloid workers.
 # If you use Cycloid SaaS version, your organization should contain by default a Cycloid credential named `cycloid-worker-keys`
-# In this cred we expect to have 2 fields
+# In this credential we expect to have 2 fields:
 #  * ssh_pub: Public ssh key of the scheduler server.
 #  * ssh_prv: Private ssh key used by your worker.
 # Which currently correspond to concourse parameters :
