@@ -69,6 +69,6 @@ module "external-worker" {
   #+ Amazon Auto Scaling Group max size configuration.
 
   #. worker_spot_price (optional): 0.3
-  #+ The maximum hourly price you're willing to pay for the Spot Instances. Linked to instance type
+  #+ The maximum hourly price you're willing to pay for the Spot Instances. Linked to instance type.
   worker_spot_price       = "0.3"
 }
