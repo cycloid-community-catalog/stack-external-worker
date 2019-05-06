@@ -15,7 +15,7 @@ And also expose metrics in Prometheus format using Telegraf on port `9100`.
 <img src="docs/diagram.jpeg" width="400">
 </p>
 
-  * **ASG**: Amazon Auto Scaling group
+  * **ASG**: Amazon Auto Scaling Group
 
 # Requirements
 
