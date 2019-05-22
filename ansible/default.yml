@@ -50,6 +50,8 @@ cycloid_files_watched:
  - name: concourse-worker
    path: "/var/log/concourse-worker.log"
 
+# push cloudwatch logs to the same region as the worker
+fluentd_cloudwatch_region: "{{ lookup('aws_region', 'eu-west-1') }}"
 
 sysctl_configs:
   - name: net.ipv4.ip_forward

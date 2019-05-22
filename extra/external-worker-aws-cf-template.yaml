@@ -382,6 +382,7 @@ Resources:
               concourse_tsa_worker_key: "{{ concourse_tsa_worker_key_base64 | b64decode}}"
               concourse_worker_team: "$TEAM_ID"
               nvme_mapping_run: true
+              aws_region: "$AWS_REGION"
               EOF
               
               ansible-galaxy install -r requirements.yml --force --roles-path=/etc/ansible/roles

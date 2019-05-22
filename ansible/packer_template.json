@@ -92,6 +92,7 @@
             "--diff",
             "-e 'env={{user `env`}}'",
             "-e 'concourse_exposed_team={{user `exposed_team`}}'",
+            "-e 'aws_region={{user `aws_region`}}'",
             "-e 'ec2_tag_env={{user `env`}}'",
             "-e 'ec2_tag_project={{user `project`}}'",
             "-e 'ec2_tag_role={{user `role`}}'",
