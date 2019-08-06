@@ -341,6 +341,9 @@ Resources:
           Value:
             Ref: CustomerTag
           PropagateAtLaunch: true
+        - Key: "role"
+          Value: "worker"
+          PropagateAtLaunch: true
         - Key: "env"
           Value:
             Ref: EnvironmentTag
@@ -439,7 +442,7 @@ Resources:
               apt-get install -y git python-setuptools curl jq
               easy_install pip
               pip install -U cryptography
-              pip install ansible==2.4.6
+              pip install ansible==2.7.12
               pip install awscli
 
               # Be able to use paris region (https://github.com/boto/boto/issues/3783)

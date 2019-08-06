@@ -12,7 +12,7 @@ def test_generated_files(host):
     # Concourse
     assert host.file("/var/lib/concourse/worker_key").contains('BEGIN RSA PRIVATE KEY...')
     #wait for worker logs
-    time.sleep( 10 )
+    time.sleep( 30 )
     assert host.file("/var/log/concourse-worker.log").contains('...worker.beacon.restarting...')
 
 def test_mount_point(host):

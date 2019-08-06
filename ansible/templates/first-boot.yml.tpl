@@ -22,15 +22,35 @@
      - awscli
      - boto
 
-   - name: Gather ec2 facts
-     ec2_facts:
+   # AWS
+   - name: AWS
+     block:
+     - name: Gather ec2 facts
+       ec2_facts:
+     - name: Retrieve all tags on an instance
+       ec2_tag:
+         region: '{{ ansible_ec2_placement_region }}'
+         resource: '{{ ansible_ec2_instance_id }}'
+         state: list
+       register: ec2_tags
+     - name: "Set facts instance id"
+       set_fact: instance_id="{{ ansible_ec2_instance_id }}"
+     when: ansible_system_vendor == "Amazon EC2"
 
-   - name: Retrieve all tags on an instance
-     ec2_tag:
-       region: '{{ ansible_ec2_placement_region }}'
-       resource: '{{ ansible_ec2_instance_id }}'
-       state: list
-     register: ec2_tags
+   # GCP
+   - name: GCP
+     block:
+     - name: Get instance ID from google metadatas
+       uri:
+         url: http://metadata/computeMetadata/v1/instance/id
+         return_content: yes
+         headers:
+           Metadata-Flavor: "Google"
+       register: gcp_instance_id
+     - name: "Set facts instance id"
+       set_fact: instance_id="{{ gcp_instance_id.content }}"
+     when: ansible_system_vendor == "Google"
+
 
    # override var_lib_device by local if needed
    - name: found local disk
@@ -48,7 +68,18 @@
      when: use_local_device|bool == true and dev_files.files
 
    - name: "Set facts with hostname"
-     set_fact: ansible_hostname="{{ ami_project|lower }}-{{ ami_role|lower }}-{{ ami_env|lower }}-{{ ansible_ec2_instance_id }}"
+     set_fact: ansible_hostname="{{ ami_project|lower }}-{{ ami_role|lower }}-{{ ami_env|lower }}-{{ instance_id }}"
+
+   # Due to ansible set hostname issue https://github.com/ansible/ansible/issues/25543
+   - name: install dbus
+     package:
+       name: dbus
+       state: present
+   - name: Ensure dbus started
+     service:
+       name: dbus
+       state: started
+
 
    - name: "Setup instance hostname"
      hostname: name="{{ ansible_hostname }}"

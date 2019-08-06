@@ -117,7 +117,7 @@ https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1
 &param_TeamId=...
 ```
 
-> Internal note to refresh the file on s3 : `aws s3 cp extra/external-worker-aws-cf-template.yaml s3://cycloid-cloudformation/`
+> Internal note to refresh the file on s3 : `aws s3 cp extra/aws/external-worker-aws-cf-template.yaml s3://cycloid-cloudformation/`
 
 
 

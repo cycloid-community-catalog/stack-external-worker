@@ -1,0 +1,227 @@
+---
+
+{% set name_prefix = properties["customerTag"] + "-" + properties["projectTag"] + "-" + properties["environmentTag"] %}
+
+resources:
+
+- name: {{ name_prefix }}-firewall-rule
+  type: compute.v1.firewall
+  properties:
+    network: $(ref.{{ name_prefix }}-network.selfLink)
+    sourceRanges: ["0.0.0.0/0"]
+    allowed:
+    - IPProtocol: TCP
+      ports: ["22"]
+
+- name: {{ name_prefix }}-network
+  type: compute.v1.network
+  properties:
+    routingConfig:
+      routingMode: REGIONAL
+    autoCreateSubnetworks: true
+
+
+- name: {{ name_prefix }}-template
+  type: compute.v1.instanceTemplate
+  properties:
+    properties:
+      machineType: {{ properties["instanceType"] }}
+      networkInterfaces:
+      - network: $(ref.{{ name_prefix }}-network.selfLink)
+        accessConfigs:
+        - name: External NAT
+          type: ONE_TO_ONE_NAT
+      scheduling:
+        preemptible: {{ properties["preemptible"] }}
+      disks:
+      - deviceName: boot
+        type: PERSISTENT
+        boot: true
+        autoDelete: true
+        initializeParams:
+          sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-9
+  
+      - deviceName: data-volume
+        type: PERSISTENT
+        autoDelete: true
+        initializeParams:
+          diskType: {{ properties["diskType"] }}
+          diskSizeGb: {{ properties["volumeSize"] }}
+        labels:
+          cycloidio: "true"
+          role: worker
+          project: {{ properties["projectTag"] }}
+          customer: {{ properties["customerTag"] }}
+          role: "worker"
+          env: {{ properties["environmentTag"] }}
+          app: {{ name_prefix }}
+
+      labels:
+        cycloidio: "true"
+        role: worker
+        project: {{ properties["projectTag"] }}
+        customer: {{ properties["customerTag"] }}
+        role: "worker"
+        env: {{ properties["environmentTag"] }}
+        app: {{ name_prefix }}
+      serviceAccounts:
+        - email: default
+          # The following scope allows this instance to create variable resources.
+          scopes:
+            - 'https://www.googleapis.com/auth/cloudruntimeconfig'
+      metadata:
+        items:
+        - key: startup-script
+          value: |
+              #!/bin/bash -xe
+              export LOG_FILE="/var/log/user-data.log"
+              exec &> >(tee -a ${LOG_FILE})
+
+              export SCHEDULER_API_ADDRESS="{{ properties["schedulerApiAddress"] }}"
+              export SCHEDULER_HOST="{{ properties["schedulerHost"] }}"
+              export SCHEDULER_PORT="{{ properties["schedulerPort"] }}"
+              export TSA_PUBLIC_KEY="{{ properties["tsaPublicKey"] }}"
+              export WORKER_KEY="{{ properties["workerKey"] }}"
+              export TEAM_ID="{{ properties["teamId"] }}"
+    
+              function finish {
+                  if [ $? -eq 0 ]; then
+                      echo "cloudformation signal-resource SUCCESS"
+                      gcloud beta runtime-config configs variables set \
+                        success/worker success --config-name {{ name_prefix }}-runtimeconfig
+                  else
+                      set +e
+                      echo "cloudformation signal-resource FAILURE"
+                      gcloud beta runtime-config configs variables set \
+                        failure/worker failure --config-name {{ name_prefix }}-runtimeconfig
+                      if ! [ -f "/tmp/keeprunning" ]; then
+                          sleep 60
+                          halt -p
+                      fi
+                  fi
+              }
+              trap finish EXIT
+              echo "### starting setup of cycloid worker"
+              apt-get update
+              apt-get install -y git python-setuptools curl jq
+              easy_install pip
+              pip install -U cryptography
+              pip install ansible==2.7.12
+    
+              cd /opt/
+              git clone -b master https://github.com/cycloid-community-catalog/stack-external-worker
+              cd stack-external-worker/ansible
+    
+              export HOME=/root
+              export VERSION=$(curl -sL "${SCHEDULER_API_ADDRESS}/api/v1/info" | jq -r '.version')
+    
+              {% raw %}
+              cat >> prod-worker.yml <<EOF
+              var_lib_device: /dev/disk/by-id/google-data-volume
+              concourse_version: "${VERSION}"
+              concourse_tsa_port: "$SCHEDULER_PORT"
+              concourse_tsa_host: "$SCHEDULER_HOST"
+              concourse_tsa_public_key: "$TSA_PUBLIC_KEY"
+              concourse_tsa_worker_key_base64: "$WORKER_KEY"
+              concourse_tsa_worker_key: "{{ concourse_tsa_worker_key_base64 | b64decode}}"
+              concourse_worker_team: "$TEAM_ID"
+              nvme_mapping_run: true
+              EOF
+              {% endraw %}
+    
+              ansible-galaxy install -r requirements.yml --force --roles-path=/etc/ansible/roles
+    
+              echo "Run packer.yml"
+              ANSIBLE_FORCE_COLOR=1 PYTHONUNBUFFERED=1 ansible-playbook -e role=workers -e env=prod -e project=cycloid-ci-workers --connection local packer.yml
+    
+              echo "Run external-worker.yml build steps"
+              ANSIBLE_FORCE_COLOR=1 PYTHONUNBUFFERED=1 ansible-playbook -e role=workers -e env=prod -e project=cycloid-ci-workers --connection local external-worker.yml --diff --skip-tags deploy,notforbuild,telegraf
+    
+              echo "Run /home/admin/first-boot.yml"
+              ANSIBLE_FORCE_COLOR=1 PYTHONUNBUFFERED=1 ansible-playbook -e role=workers -e env=prod -e project=cycloid-ci-workers --connection local /home/admin/first-boot.yml --diff
+    
+              echo "Run external-worker.yml boot steps"
+              ANSIBLE_FORCE_COLOR=1 PYTHONUNBUFFERED=1 ansible-playbook -e role=workers -e env=prod -e project=cycloid-ci-workers --connection local external-worker.yml --diff --tags runatboot,notforbuild --skip-tags telegraf
+
+              sleep 60 && systemctl status concourse-worker
+
+- name: {{ name_prefix }}-igm
+  type: compute.v1.regionInstanceGroupManager
+  properties:
+    region: {{ properties["region"] }}
+    baseInstanceName: {{ name_prefix }}-vm
+    instanceTemplate: $(ref.{{ name_prefix }}-template.selfLink)
+    targetSize: 1
+    autoHealingPolicies:
+    - initialDelaySec: 120
+    updatePolicy:
+      minimalAction: REPLACE
+      type: PROACTIVE
+    labels:
+      cycloidio: "true"
+      role: worker
+      project: {{ properties["projectTag"] }}
+      customer: {{ properties["customerTag"] }}
+      role: "worker"
+      env: {{ properties["environmentTag"] }}
+      app: {{ name_prefix }}
+
+- name: {{ name_prefix }}-as
+  type: compute.v1.regionAutoscaler
+  properties:
+    region: {{ properties["region"] }}
+    target: $(ref.{{ name_prefix }}-igm.selfLink)
+    autoscalingPolicy:
+      minNumReplicas: {{ properties["numberOfWorkers"] }}
+      maxNumReplicas: {{ properties["numberOfWorkers"] }}
+      #cpuUtilization:
+      #  utilizationTarget: 0.8
+      #coolDownPeriodSec: 90
+    labels:
+      cycloidio: "true"
+      role: worker
+      project: {{ properties["projectTag"] }}
+      customer: {{ properties["customerTag"] }}
+      role: "worker"
+      env: {{ properties["environmentTag"] }}
+      app: {{ name_prefix }}
+    
+
+# /!\ This require to enable runtimeconfig beta api on your project
+- name: {{ name_prefix }}-runtimeconfig
+  type: runtimeconfig.v1beta1.config
+  properties:
+    config: {{ name_prefix }}-runtimeconfig
+
+- name: {{ name_prefix }}-waiter
+  type: runtimeconfig.v1beta1.waiter
+  metadata:
+    # By adding this dependency on the instance, Deployment Manager won't create
+    # the waiter until after the VM has been created. While not strictly necessary,
+    # the benefit of blocking the waiter on instance creation is that the waiter's
+    # timeout countdown won't start until after the instance is running, leading to
+    # a more deterministic deployment.
+    dependsOn:
+    - {{ name_prefix }}-as
+
+  properties:
+    parent: $(ref.{{ name_prefix }}-runtimeconfig.name)
+    waiter: {{ name_prefix }}-waiter
+    timeout: 600s
+    # The area for success variables. This waiter considers 1 or more variables
+    # written somewhere under /success to indicate success.
+    success:
+      cardinality:
+        path: /success
+        number: 1
+    failure:
+      cardinality:
+        path: /failure
+        number: 1
+
+outputs:
+- name: configName
+  value: {{ name_prefix }}-runtimeconfig
+
+
+# Note : if start/stop of worker are requested by customers, a way would be to follow https://cloud.google.com/scheduler/docs/start-and-stop-compute-engine-instances-on-a-schedule

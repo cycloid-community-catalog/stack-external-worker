@@ -60,9 +60,9 @@ external_worker_key: cycloid-worker-keys
 #+ Public ssh key injected by Packer during the build of the AMI for debug purpose
 debug_public_key: "ssh-rsa ..."
 
-#. packer_ansible_version: "2.4.6"
+#. packer_ansible_version: "2.7.12"
 #+ Version of ansible used during Packer build to run Ansible playbook
-packer_ansible_version: "2.4.6"
+packer_ansible_version: "2.7.12"
 
 #
 # Repos
