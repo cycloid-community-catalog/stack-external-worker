@@ -68,7 +68,7 @@
      when: use_local_device|bool == true and dev_files.files
 
    - name: "Set facts with hostname"
-     set_fact: ansible_hostname="{{ ami_project|lower }}-{{ ami_role|lower }}-{{ ami_env|lower }}-{{ instance_id }}"
+     set_fact: ansible_hostname="{{ ami_project|lower }}-{{ ami_role|lower }}-{{ ami_env|lower }}-{{ instance_id | default(ansible_default_ipv4.address | replace('.', '-'), true) }}"
 
    # Due to ansible set hostname issue https://github.com/ansible/ansible/issues/25543
    - name: install dbus
