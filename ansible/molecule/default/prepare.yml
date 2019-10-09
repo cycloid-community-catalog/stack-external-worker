@@ -1,7 +1,7 @@
 ---
 
 - name: Install depends
-  hosts: all
+  hosts: instance
   gather_facts: no
   tasks:
     - name: install apt depends

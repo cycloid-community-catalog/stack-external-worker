@@ -12,13 +12,60 @@ lint:
   options:
     config-data: "{extends: relaxed, rules: {line-length: {max: 200}}}"
 platforms:
+  - name: psql
+    image: postgres:9.6.5-alpine
+    networks:
+    - name: molecule
+      aliases:
+        - psql
+    published_ports:
+      - "5432:5432"
+    #command: "postgres"
+    command: "docker-entrypoint.sh postgres"
+    env:
+      POSTGRES_PASSWORD: concourse
+      POSTGRES_USER: super
+      POSTGRES_DB: concourse
+
+  - name: concourse-web
+    image: concourse/concourse:4.2.3
+    volumes:
+      - "/tmp/molecule_test:/opt:ro"
+    networks:
+    - name: molecule
+      aliases:
+        - concourse-web
+    links:
+       - "psql:psql"
+    command: "web"
+    published_ports:
+      - "2222:2222"
+      - "8080:8080"
+    env:
+      CONCOURSE_ADD_LOCAL_USER: concourse:concourse
+      CONCOURSE_MAIN_TEAM_LOCAL_USER: concourse
+      CONCOURSE_BIND_PORT: 8080
+      CONCOURSE_EXTERNAL_URL: "http://localhost:8080"
+      CONCOURSE_POSTGRES_HOST: psql
+      CONCOURSE_POSTGRES_USER: super
+      CONCOURSE_POSTGRES_PASSWORD: concourse
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_CLUSTER_NAME: dev
+      CONCOURSE_TSA_HOST_KEY: /opt/id_rsa
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /opt/id_rsa.pub
+      CONCOURSE_TSA_SESSION_SIGNING_KEY: /opt/id_rsa
+
   - name: instance
     #image: docker:dind
     image: debian:stretch
+    volumes:
+      - "/tmp/molecule_test:/mnt/:ro"
     published_ports:
       - "9100:9100"
     privileged: yes
     command: "/bin/systemd"
+    links:
+       - "concourse-web:concourse-web"
     groups:
      - tag_project_external-worker
      - tag_role_worker
@@ -27,61 +74,6 @@ platforms:
 
 provisioner:
   name: ansible
-  inventory:
-    group_vars:
-      all:
-              concourse_tsa_worker_key: |
-                  -----BEGIN RSA PRIVATE KEY-----
-                  MIIJKAIBAAKCAgEA5uYoQZNJcQksBj3ymSbrUxEHARcSyYbsY4zcuR5Xq/rNcqOv
-                  UTId2jpVxdkuf3tLtRuXZoGhwFByjAqUFsMt/MBaazagFsE8qZZLqvwdiYRWsfpw
-                  9KP6OrykZOh3ACA0LRPjwEObBUTWbgGODL4PO3vYMhckcYAzUhCx/bwOTfzIQ+B8
-                  7RtZLqXFOwiQd0JSKJIHoX4pb2vB0QnHzbYgtyWZ2pNvr+UOoNY1gZj4kK5wZwYi
-                  5CNUsbaHD67QclWr3i6C+rlFhI0+ZwniolaIuNGtPcdjRLvqeZ1Ve50cWMTh9dRT
-                  F7d838zyGDA7JdOhd8E5Gr9/BRd1lz0TquGgLoEaj1aPEyZqIdykAAkBABfREbqq
-                  5yp6DGDF74P6S6200gU0uJ+/DrCj5SaPkgQw/rpV1Zb2l3aM28Q+XBKUYPEhQG3F
-                  WSWIFWoYNaFwZ2Kro8/wpwbCSq8GzLSm1OdujSk6YrrbuaIRObGByH0YQYfmM2nY
-                  7Gf8y+FvMBRXyw5Ca9ZoWQ/1HQSfEqP1rekZjR/ig9JmOCSK/xbbhdaEf4UW6VKK
-                  Y1vF6Zi8NUxFCvjaH70C2v6k41ty+lxjoiJXuNG1KHiYBZrXKtg/kZdx959SSRy+
-                  HFYlbp3OQV6b+dkOhfT80dvXU08hHDpEq6wcxlT8KTYz0SNUoOG1mQHwE50CAwEA
-                  AQKCAgBAq+5Sj6JeWqdOCEPOyavX1EkV8RR+BaBoMagQ4YLE1LZ+iYItR9A8s2Ia
-                  zD3Nzwbhbxz0xRI8/0tWFhBsX7aduHKa3O3x8aXACiyfc4YCYmK17uN8YgFQOk4B
-                  RWsvSdXTWmLMEyN0UleM8DqNLx6tFn7zaK/4amP1dF+mJeoLxeWBvXrAHozYF+4q
-                  Hrf370d7vYsNnHyWjKP4nLit0XlQUuPI6Mq7hXiXa+gIqIPWYkVxVbKoG405SVqC
-                  9f/ERmKhFH3zI7lo6vazfX1Q4tPgkDnpt9MCCXAfKAYtXU/3PQ3dAN9VITuEo66b
-                  P8cRTTlIhYItD73P+0YgWicMEa3/UDyAY1L4GElmx+0AZxJfDqkeaJ1NliKf/S79
-                  hN5SRJzlukqDs+6m16671UrngmrZsYc/DIfyJY+8my663Fk5gy6eUtqqzihdJ5tG
-                  QLunoe4hDB6qo6EN0+T8adWocXYhl92Jcp8rF3lrqGW66Ww+ca8M4XW8G/Gf/GvU
-                  rU9OSE1CfbNHXVDKMMR99PAxyP1d0kiSnlHxAOQb0grfnuMZbUvLCJLBHsxFK8Nn
-                  4QBi9hMImQ8e/EOrLLRKZis6U6QfYeGpMccCGRYPwxNOg5mu9i35qufP2cfJcBsd
-                  q4ltwZrlkpb8q2/AGJGNs0GTZXK9tyGlNv5Ag7ba4v+S35r4AQKCAQEA+2imoILA
-                  FWe8Wbk0JfoQjAcXFFW47HR1XqfbpztNzuTJuiGjO2n63x+CkSs93PijeR7zad/v
-                  ytV7n6VhUCOd7XR7FC0D/VWX+ZRhJgcM5SMDgFtDvkcJ6oPnhnLALkM1n/XisTbJ
-                  8wxD2qlZer/qn84ckFlpcdtVWZfPPWdxuOlGZR78K5srAZ4kSw0L6pWU0U/JZeFQ
-                  fDzN25wDKbwMhHbNonjvRJJOmfFPkE3yaXOThbHAKWPLNyDMbYY6aM9k3o5UciqI
-                  mlRs4+4tlESlJdJruLWl4Gpl40eezEF9hCsHlXJy016v0H+cfdSDcyI37e8eod33
-                  1VTEyGgwmAgXHQKCAQEA6x2fTLvjyNuVMIZguMI75vCt659YQbNjWn7+xv3uCsiG
-                  RLYsOtnO8kwMZPzV1hMzpEbGOwyFOuRAselk0h1yrW22Urg4BoOq57kGBQIIkzWv
-                  9IukhS4xW4oWWBHL/b/pf8vRUKaV/9h0nU+oM4ECTw2taGJenyMGpuqb5o8e0d42
-                  MVTlR4kz325J3xlLrWpE9hBYQblMCC9xzRb8p0cwjmpThiX1fdPgug6Dtpspbcoz
-                  A371voM1Qbo7ZhyacxjTgONld0dxu2PheVLf7Wr8O2Wl0Ofmu+n17iz2ffLRawbC
-                  9/6jgQScdhKZuIsQhv4xqSpvfJQANzEjT6iz5yzGgQKCAQAPBLpnfkgRP0guJ/Uo
-                  i56vbsD/MvvADFjylZ52iAFm6Z3vY5EHvJYC/DPljiq855GEa8fovDrr6ALhj5SX
-                  n/kQNVQg6WuCl7ljbGy9Q9COY6AS6+DJHh9GhiivjG1Ulik+7AZlxbscrM/k4Rb6
-                  UTqn3z0vllfJOGwJ1RrJNUPC4xSUd9xikntoNlU+soHSuqrQMi76yhHvygYWJ2S8
-                  +oHY6+vu18CbXQ4a/iJdoXpouEHIy8yJ7G84VNpBdLJKjpEdBm2fAFF2vrJej1zj
-                  rZIcB0zuFNPa6yA5Co8+7m6cFaH3WIXpgI+KKgVkMuzDVPj4Wr9+te7XLKAwxKCa
-                  hGk1AoIBAEm7GGGv6lbqxXZaLarC/pYFlAT4C21PHDEc8jjlGOk4ySJzHpu2Ajfp
-                  sVlaEJT5oJA7wZ5y5rT5L3CbiIp7waKxbSOzsZ4ZXFcepsybPqUriOpfgFBjlAbo
-                  3ujva9E/hbIV8KYiF5gMAUXz3QOJyXeRCnhZoOK20Tc3C3zaFQgrb0M5JE2ysRm4
-                  NGJKRHk1gjrIFWVG/pjyh/WQ59ptcMS4g0jmTn4PG8I9GwEA15Uee7D094uvCdx6
-                  0nXLMoQ1nN4mcYNeXEQvpl2tp5uEmWTnE4DXuHvlesIeR45nv1SY4jtzF0M2dvpw
-                  CtTch2pN/LTYIe4nW4nzVud8OC6e1AECggEBAK8Yz6zKaXr+XELKHRC+Ved4/dx7
-                  fwL+4Db1d1ehsHQHMhzv0v0SW07/UTVeB401kyztcFt8NTVA5vgSpHUf3kUKGgTP
-                  9iN7oCqPhgazzt/YGYB1Y7OdXEcLHgXep+0WWsv0YPjvvlNND85aufUtV2WNE+Ni
-                  u/YqdrAaJV2BNJWAc0HifYW5sO7/VhoKmxFEdvOrp0Jhgb7qWi6cnuRB8DzWjY3i
-                  W7t2snt+RIHkrg0j2vRZfFjCJBOcgjyrwVmJxUSdTESaoyonUpqn+sq/Uw4ZVlU/
-                  6fs67MSRzFgnJkbwr/SuC/L3A3AA7TQcQghrJy02ZnD36nmtW6lWSbsJGwQ=
-                  -----END RSA PRIVATE KEY-----
 
   env:
     MOLECULE_DEBUG: "true"
@@ -97,10 +89,11 @@ provisioner:
       project: external-worker
       customer: cycloid
       role: worker
-      concourse_tsa_host: concourse_tsa_host.cycloid.io
+      concourse_tsa_host: concourse-web
       concourse_version: 4.2.3
       systemd_mount_device: 'LABEL=ephemeral0'
-      concourse_tsa_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDm5ihBk0lxCSwGPfKZJutTEQcBFxLJhuxjjNy5Hler+s1yo69RMh3aOlXF2S5/e0u1G5dmgaHAUHKMCpQWwy38wFprNqAWwTyplkuq/B2JhFax+nD0o/o6vKRk6HcAIDQtE+PAQ5sFRNZuAY4Mvg87e9gyFyRxgDNSELH9vA5N/MhD4HztG1kupcU7CJB3QlIokgehfilva8HRCcfNtiC3JZnak2+v5Q6g1jWBmPiQrnBnBiLkI1SxtocPrtByVaveLoL6uUWEjT5nCeKiVoi40a09x2NEu+p5nVV7nRxYxOH11FMXt3zfzPIYMDsl06F3wTkav38FF3WXPROq4aAugRqPVo8TJmoh3KQACQEAF9ERuqrnKnoMYMXvg/pLrbTSBTS4n78OsKPlJo+SBDD+ulXVlvaXdozbxD5cEpRg8SFAbcVZJYgVahg1oXBnYqujz/CnBsJKrwbMtKbU526NKTpiutu5ohE5sYHIfRhBh+YzadjsZ/zL4W8wFFfLDkJr1mhZD/UdBJ8So/Wt6RmNH+KD0mY4JIr/FtuF1oR/hRbpUopjW8XpmLw1TEUK+NofvQLa/qTjW3L6XGOiIle40bUoeJgFmtcq2D+Rl3H3n1JJHL4cViVunc5BXpv52Q6F9PzR29dTTyEcOkSrrBzGVPwpNjPRI1Sg4bWZAfATnQ=="
+      concourse_tsa_public_key: "{{lookup('file', '/tmp/molecule_test/id_rsa.pub')}}"
+      concourse_tsa_worker_key: "{{lookup('file', '/tmp/molecule_test/id_rsa')}}"
     connection: ""
     #skip-tags: molecule-notest
     #vvv: "True"

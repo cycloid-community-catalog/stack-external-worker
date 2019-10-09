@@ -1,4 +1,16 @@
 ---
+# Cycloid : create test key for Concourse
+- name: Generate local ssh key
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - file:
+        path: /tmp/molecule_test
+        state: directory
+    - name: Generate local ssh key
+      shell: "ssh-keygen -b 4096 -t rsa -N '' -f /tmp/molecule_test/id_rsa creates=/tmp/molecule_test/id_rsa"
+
 - name: Create
   hosts: localhost
   connection: local
