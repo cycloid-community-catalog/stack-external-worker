@@ -85,6 +85,7 @@ resources:
               export WORKER_KEY="{{ properties["workerKey"] }}"
               export TEAM_ID="{{ properties["teamId"] }}"
               export STACK_BRANCH="{{ properties["stackBranch"] }}"
+              export VERSION="{{ properties["workerVersion"] }}"
               export DEBUG="{{ properties["debugMode"] }}"
     
               curl -sSL "https://raw.githubusercontent.com/cycloid-community-catalog/stack-external-worker/${STACK_BRANCH}/extra/startup.sh" | bash -s gcp

@@ -88,6 +88,10 @@ properties:
     description: Branch of the external-worker stack to use.
     type: string
     default: master
+  workerVersion:
+    description: Force a specific worker version. Default it will use the version provided by the scheduler API.
+    type: string
+    default: ""
   debugMode:
     description: Enable of disable debug mode.
     type: boolean

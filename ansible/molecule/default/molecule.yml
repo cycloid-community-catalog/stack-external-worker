@@ -20,7 +20,6 @@ platforms:
         - psql
     published_ports:
       - "5432:5432"
-    #command: "postgres"
     command: "docker-entrypoint.sh postgres"
     env:
       POSTGRES_PASSWORD: concourse
@@ -56,7 +55,6 @@ platforms:
       CONCOURSE_TSA_SESSION_SIGNING_KEY: /opt/id_rsa
 
   - name: instance
-    #image: docker:dind
     image: debian:stretch
     volumes:
       - "/tmp/molecule_test:/mnt/:ro"
@@ -90,7 +88,7 @@ provisioner:
       customer: cycloid
       role: worker
       concourse_tsa_host: concourse-web
-      concourse_version: 4.2.3
+      concourse_version: 5.6.0
       systemd_mount_device: 'LABEL=ephemeral0'
       concourse_tsa_public_key: "{{lookup('file', '/tmp/molecule_test/id_rsa.pub')}}"
       concourse_tsa_worker_key: "{{lookup('file', '/tmp/molecule_test/id_rsa')}}"

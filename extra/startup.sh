@@ -142,7 +142,7 @@ use_endpoint_heuristics = True' > /etc/boto.cfg
     cd stack-external-worker/ansible
 
     export HOME=/root
-    export VERSION=$(curl -sL "${SCHEDULER_API_ADDRESS}/api/v1/info" | jq -r '.version')
+    export VERSION=${VERSION:-$(curl -sL "${SCHEDULER_API_ADDRESS}/api/v1/info" | jq -r '.version')}
 
     cat >> prod-worker.yml <<EOF
 concourse_version: "${VERSION}"

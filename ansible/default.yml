@@ -12,7 +12,25 @@ concourse_worker: yes
 # Don't start as we don't want worker to start during the build
 concourse_worker_name: "$(hostname)"
 concourse_service_enabled: no
-concourse_worker_options: |
+
+# Get all options available : /var/lib/concourse/bin/gdn server --help
+# CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'
+concourse_worker_env:
+    CONCOURSE_GARDEN_ASSETS_DIR: "{{ concourse_work_dir }}/garden_assets/"
+    CONCOURSE_GARDEN_DEPOT: "{{ concourse_work_dir }}/garden_depot"
+    CONCOURSE_GARDEN_LOG_LEVEL: "error"
+    CONCOURSE_GARDEN_NETWORK_POOL: "10.254.0.0/16"
+    CONCOURSE_GARDEN_MAX_CONTAINERS: 1024
+
+concourse_worker_options: "{% if concourse_version is version('5.0', '>=') %}{{ concourse_worker_default_options }}{% else %}{{ concourse_4_worker_default_options }}{% endif %}"
+
+concourse_worker_default_options: |
+  --ephemeral \
+  --baggageclaim-log-level=error \
+  --baggageclaim-volumes={{ concourse_work_dir }}/baggageclaim_volumes \
+  --baggageclaim-driver={{ fs_volume_options[fs_volume_type]['bc_driver'] }} 2>&1 | tee -a /var/log/concourse-worker.log ; exit ${PIPESTATUS[0]}
+
+concourse_4_worker_default_options: |
   --ephemeral \
   --garden-network-pool 10.254.0.0/16 \
   --garden-max-containers 1024 \
@@ -25,12 +43,6 @@ concourse_worker_options: |
 
 #concourse_worker_tag: "foo"
 #concourse_worker_team: "bar"
-
-  #--garden-default-grace-time=120s \
-  #--garden-graph=/var/lib/concourse/datas/garden_graph \
-
-#--garden-cleanup-process-dirs-on-wait=true
-#--garden-destroy-containers-on-startup=true
 
 
 concourse_install_dir: /var/lib/concourse

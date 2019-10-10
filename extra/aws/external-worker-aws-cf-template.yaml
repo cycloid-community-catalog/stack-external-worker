@@ -15,10 +15,6 @@ Parameters:
     Description: Cycloid CI scheduler port
     Type: String
     Default: 32223
-  AutoScalingGroupName:
-    Description: The name of the Auto Scaling group. This name must be unique per Region per account.
-    Type: String
-    Default: asg-cycloid-ci-workers
   NumberOfWorkers:
     Description: Number of Cycloid CI workers. If the InstanceSpotPriceEnabled variable is true, the value will be always 0 but will be used for Desired Capacity.
     Type: Number
@@ -191,6 +187,10 @@ Parameters:
     Type: String
     Description: Branch of the external-worker stack to use.
     Default: master
+  WorkerVersion:
+    Type: String
+    Description: Force a specific worker version. Default it will use the version provided by the scheduler API.
+    Default: ""
   DebugMode:
     Type: String
     Description: Enable of disable debug mode.
@@ -432,6 +432,10 @@ Resources:
 
             - "export STACK_BRANCH="
             - Ref: StackBranch
+            - "\n"
+
+            - "export VERSION="
+            - Ref: WorkerVersion
             - "\n"
 
             - "export DEBUG="
