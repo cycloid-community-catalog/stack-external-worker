@@ -17,12 +17,24 @@ _() {
     STACK_BRANCH=${STACK_BRANCH:-"master"}
     VAR_LIB_DEVICE=${VAR_LIB_DEVICE:-""}
     CLOUD_PROVIDER=${CLOUD_PROVIDER:-""}
+    WORKER_KEY=${WORKER_KEY:-""}
+    SCHEDULER_API_ADDRESS=${SCHEDULER_API_ADDRESS:-""}
+    SCHEDULER_HOST=${SCHEDULER_HOST:-""}
+    SCHEDULER_PORT=${SCHEDULER_PORT:-""}
+    TSA_PUBLIC_KEY=${TSA_PUBLIC_KEY:-""}
+    RUNTIMECONFIG_NAME=${RUNTIMECONFIG_NAME:-""}
+    TEAM_ID=${TEAM_ID:-""}
+    VAULT_URL=${VAULT_URL:-"https://vault.cycloid.io"}
+    VAULT_ROLE_ID=${VAULT_ROLE_ID:-""}
+    VAULT_SECRET_ID=${VAULT_SECRET_ID:-""}
 
     # For backward compatibility with older deployments
     PROJECT=${PROJECT:-"cycloid-ci-workers"}
     ROLE="${ROLE:-"workers"}"
     ENV="${ENV:-"prod"}"
     STACK_NAME="${STACK_NAME:-$PROJECT}"
+    # Make sure there is no trailling slash
+    VAULT_URL=${VAULT_URL%/}
 
     cloud_signal_status() {
         local status="$1"
@@ -92,20 +104,27 @@ _() {
     }
 
     handle_envvars() {
-        [[ -z "${SCHEDULER_API_ADDRESS}" ]] && echo "error: SCHEDULER_API_ADDRESS envvar must be set." >&2
-        [[ -z "${SCHEDULER_HOST}" ]] && echo "error: SCHEDULER_HOST envvar must be set." >&2
-        [[ -z "${SCHEDULER_PORT}" ]] && echo "error: SCHEDULER_PORT envvar must be set." >&2
-        [[ -z "${TSA_PUBLIC_KEY}" ]] && echo "error: TSA_PUBLIC_KEY envvar must be set." >&2
-        [[ -z "${WORKER_KEY}" ]] && echo "error: WORKER_KEY envvar must be set." >&2
-        [[ -z "${TEAM_ID}" ]] && echo "error: TEAM_ID envvar must be set." >&2
-        [[ -z "${PROJECT}" ]] && echo "error: PROJECT envvar must be set." >&2
-        [[ -z "${ENV}" ]] && echo "error: ENV envvar must be set." >&2
-        [[ -z "${ROLE}" ]] && echo "error: ROLE envvar must be set." >&2
+        [[ -z "${SCHEDULER_API_ADDRESS}" ]] && echo "error: SCHEDULER_API_ADDRESS envvar must be set." >&2 && exit 2
+        [[ -z "${SCHEDULER_HOST}" ]] && echo "error: SCHEDULER_HOST envvar must be set." >&2 && exit 2
+        [[ -z "${SCHEDULER_PORT}" ]] && echo "error: SCHEDULER_PORT envvar must be set." >&2 && exit 2
+        [[ -z "${TSA_PUBLIC_KEY}" ]] && echo "error: TSA_PUBLIC_KEY envvar must be set." >&2 && exit 2
+        [[ -z "${TEAM_ID}" ]] && echo "error: TEAM_ID envvar must be set." >&2 && exit 2
+        [[ -z "${PROJECT}" ]] && echo "error: PROJECT envvar must be set." >&2 && exit 2
+        [[ -z "${ENV}" ]] && echo "error: ENV envvar must be set." >&2 && exit 2
+        [[ -z "${ROLE}" ]] && echo "error: ROLE envvar must be set." >&2 && exit 2
 
+
+        # If WORKER_KEY is not provided, try others methods
+        if [[ -z "${WORKER_KEY}" ]] && [[ -z "${VAULT_SECRET_ID}" || -z "${VAULT_SECRET_ID}" ]] ; then
+            echo "error: WORKER_KEY or VAULT_SECRET_ID && VAULT_SECRET_ID envvar must be set." >&2 && exit 2
+        fi
+
+        # GCP
         if [[ "${CLOUD_PROVIDER}" == "gcp" ]]; then
             [[ -z "${RUNTIMECONFIG_NAME}" ]] && echo "error: RUNTIMECONFIG_NAME envvar must be set." >&2
         fi
 
+        # Define device to use depending on the CloudProvider
         if [[ -z "${VAR_LIB_DEVICE}" ]]; then
             if [[ "${CLOUD_PROVIDER}" == "gcp" ]]; then
                 VAR_LIB_DEVICE="/dev/disk/by-id/google-data-volume"
@@ -113,6 +132,8 @@ _() {
                 VAR_LIB_DEVICE="/dev/xvdf"
             elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
                 VAR_LIB_DEVICE="/dev/disk/azure/scsi1/lun0"
+            elif [[ "${CLOUD_PROVIDER}" == "flexible-engine" ]]; then
+                VAR_LIB_DEVICE="/dev/vdb"
             else
                 VAR_LIB_DEVICE="/dev/sda"
             fi
@@ -140,6 +161,23 @@ _() {
     pip install -U cryptography
     pip install ansible==2.7
 
+
+    # Get WORKER_KEY from Vault
+    if [[ -z "${WORKER_KEY}" ]] && [[ -n "${VAULT_SECRET_ID}" && -n "${VAULT_ROLE_ID}" ]] ; then
+        TOKEN=$(curl -sSL --request POST --data "{\"role_id\":\"$VAULT_ROLE_ID\",\"secret_id\":\"$VAULT_SECRET_ID\"}" $VAULT_URL/v1/auth/approle/login | jq -r '.auth.client_token')
+        export WORKER_KEY=$(curl -sSL -H "X-Vault-Token: $TOKEN" -X GET $VAULT_URL/v1/cycloid/$TEAM_ID/cycloid-worker-keys | jq  -r .data.ssh_prv | base64 -w0)
+    fi
+
+    # Make sure WORKER_KEY looks ok
+    TMP_WORKER_KEY=$(mktemp)
+    echo $WORKER_KEY | base64 -d > $TMP_WORKER_KEY
+    chmod 400 $TMP_WORKER_KEY
+    
+    ssh-keygen -l -f $TMP_WORKER_KEY > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "error: WORKER_KEY Does not seems to be an SSH PRIVATE KEY." >&2 && exit 2
+    fi
+
     if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
         pip install awscli
 
@@ -157,6 +195,8 @@ use_endpoint_heuristics = True' > /etc/boto.cfg
     cd stack-external-worker/ansible
 
     export HOME=/root
+    # Remove spaces because some CloudProvider don't support empty parametter so their default value contain one space as empty
+    export VERSION=${VERSION// /}
     export VERSION=${VERSION:-$(curl -sL "${SCHEDULER_API_ADDRESS}/api/v1/info" | jq -r '.version')}
 
     cat >> "${ENV}-worker.yml" <<EOF
