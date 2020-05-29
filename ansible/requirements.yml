@@ -9,7 +9,7 @@
   scm: git
 
 - src: https://github.com/cycloidio/ansible-concourse
-  version: master
+  version: sd-concourse_worker_watchdog
   name: cycloid.concourse
   scm: git
 
