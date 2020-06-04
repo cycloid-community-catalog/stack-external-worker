@@ -12,3 +12,6 @@
 
 #. concourse_worker_team (optional):
 #+ The name of the team that this worker will be assigned to. Team ID is linked to your Cycloid organization.
+
+#. concourse_worker_watchdog_terminate_on_repeating_start_failure (optional): no
+#+ This will make systemd poweroff-force the instance if the concourse-worker service fails to start 4 times within 5min, making the ASG spawn a new instance.
