@@ -18,11 +18,21 @@ resource "aws_iam_role" "worker" {
   name               = "worker-${var.project}-${var.env}"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   path               = "/${var.project}/"
+
+  tags = merge(local.merged_tags, {
+    Name       = "worker-${var.project}-${var.env}"
+    role       = "worker"
+  })
 }
 
 resource "aws_iam_instance_profile" "worker_profile" {
   name = "profile-worker-${var.project}-${var.env}"
   role = aws_iam_role.worker.name
+
+  tags = merge(local.merged_tags, {
+    Name       = "profile-worker-${var.project}-${var.env}"
+    role       = "worker"
+  })
 }
 
 #
@@ -44,6 +54,11 @@ resource "aws_iam_policy" "ec2-tag-describe" {
   path        = "/"
   description = "EC2 tags Read only"
   policy      = data.aws_iam_policy_document.ec2-tag-describe.json
+
+  tags = merge(local.merged_tags, {
+    Name       = "${var.env}-${var.project}-ec2-tag-describe"
+    role       = "worker"
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "ec2-tag-describe" {
@@ -77,6 +92,11 @@ resource "aws_iam_policy" "cloudformation-signal" {
   path        = "/"
   description = "Allow to send stack signal for worker"
   policy      = data.aws_iam_policy_document.cloudformation-signal.json
+
+  tags = merge(local.merged_tags, {
+    Name       = "${var.env}-${var.project}-cloudformation-signal"
+    role       = "worker"
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "cloudformation-signal" {
@@ -109,6 +129,11 @@ resource "aws_iam_policy" "workers" {
   name   = "${var.env}-${var.project}-workers"
   path   = "/"
   policy = data.aws_iam_policy_document.workers.json
+
+  tags = merge(local.merged_tags, {
+    Name       = "${var.env}-${var.project}-workers"
+    role       = "worker"
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "workers" {
@@ -158,6 +183,11 @@ resource "aws_iam_policy" "push-logs" {
   path        = "/"
   description = "Push log to cloudwatch"
   policy      = data.aws_iam_policy_document.push-logs.json
+
+  tags = merge(local.merged_tags, {
+    Name       = "${var.env}-${var.project}-push-logs"
+    role       = "worker"
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "push-logs" {
