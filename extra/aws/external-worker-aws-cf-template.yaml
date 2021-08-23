@@ -343,6 +343,25 @@ Resources:
                   - "logs:DescribeDestinations"
                   - "logs:CreateLogGroup"
                 Resource: "*"
+      Tags:
+        - Key: "Name"
+          Value:
+            Fn::Join:
+              - '-'
+              - - !Ref AWS::StackName
+                - !Ref EnvironmentTag
+                - 'role'
+        - Key: "cycloid.io"
+          Value: "true"
+        - Key: "project"
+          Value:
+            Ref: AWS::StackName
+        - Key: "customer"
+          Value:
+            Ref: CustomerTag
+        - Key: "env"
+          Value:
+            Ref: EnvironmentTag
 
   WorkersInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
