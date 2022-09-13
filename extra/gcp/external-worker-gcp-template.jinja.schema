@@ -57,6 +57,10 @@ properties:
     type: boolean
     default: false
     description: Enable preemptible instance type. Warning enabling this could make some jobs fail if the instance is killed.
+  sourceImage:
+    type: string
+    default: "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-10"
+    description: Defines the source image to use for the worker. By default debian-10
 
   minNumberOfWorkers:
     description: Minimum number of Cycloid CI workers

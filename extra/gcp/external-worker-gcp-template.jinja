@@ -39,8 +39,8 @@ resources:
         boot: true
         autoDelete: true
         initializeParams:
-          sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-9
-  
+          sourceImage: {{ properties["sourceImage"] }}
+
       - deviceName: data-volume
         type: PERSISTENT
         autoDelete: true
@@ -139,7 +139,7 @@ resources:
       role: {{ properties["roleTag"] }}
       env: {{ properties["environmentTag"] }}
       app: {{ name_prefix }}
-    
+
 
 # /!\ This require to enable runtimeconfig beta api on your project
 - name: {{ name_prefix }}-runtimeconfig
