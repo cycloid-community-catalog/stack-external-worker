@@ -296,6 +296,10 @@ EOF
         echo "concourse_worker_tag: $WORKER_TAG" >> "${ENV}-worker.yml"
     fi
 
+    if [ -n "$WORKER_EXTRA_PARAMS" ]; then
+        echo -e $WORKER_EXTRA_PARAMS >> "${ENV}-worker.yml"
+    fi
+
     ansible-galaxy install -r requirements.yml --force --roles-path=/etc/ansible/roles
 
     echo "Run packer.yml"
