@@ -58,6 +58,9 @@ _() {
     # Concourse worker tag https://concourse-ci.org/concourse-worker.html#tags-and-team-workers
     WORKER_TAG=${WORKER_TAG:-""}
 
+    # Concourse worker extra ansible param to inject during the setup
+    WORKER_EXTRA_PARAMS=${WORKER_EXTRA_PARAMS:-""}
+
     # DNS server to use for Concourse worker
     # The bahavior depend of the RUNTIME used, make sure to read about it in ansible-concourse Ansible role.
     WORKER_DNS_SERVER=${WORKER_DNS_SERVER:-""}
