@@ -238,7 +238,7 @@ _() {
     fi
 
     # Get WORKER_KEY from Vault
-    if [[ -z "${WORKER_KEY}" ]] && [[ -n "${VAULT_SECRET_ID}" && -n "${VAULT_ROLE_ID}" ]] ; then
+    if [[ -z "${WORKER_KEY}" ]] && [[ -n "${VAULT_SECRET_ID}" && -n "${VAULT_ROLE_ID}" ]] && [[ "$TEAM_ID" != "global" ]]; then
         TOKEN=$(curl -sSL --request POST --data "{\"role_id\":\"$VAULT_ROLE_ID\",\"secret_id\":\"$VAULT_SECRET_ID\"}" $VAULT_URL/v1/auth/approle/login | jq -r '.auth.client_token')
         export WORKER_KEY=$(curl -sSL -H "X-Vault-Token: $TOKEN" -X GET $VAULT_URL/v1/cycloid/$TEAM_ID/cycloid-worker-keys | jq  -r .data.ssh_prv | base64 -w0)
     fi
@@ -281,7 +281,6 @@ concourse_tsa_host: "${SCHEDULER_HOST}"
 concourse_tsa_public_key: "${TSA_PUBLIC_KEY}"
 concourse_tsa_worker_key_base64: "${WORKER_KEY}"
 concourse_tsa_worker_key: "{{ concourse_tsa_worker_key_base64 | b64decode}}"
-concourse_worker_team: "${TEAM_ID}"
 nvme_mapping_run: true
 install_user: ${INSTALL_USER}
 use_local_device: ${USE_LOCAL_DEVICE}
@@ -289,6 +288,11 @@ var_lib_device: "${VAR_LIB_DEVICE}"
 cloud_provider: "${CLOUD_PROVIDER}"
 concourse_worker_dns_server: "${WORKER_DNS_SERVER}"
 EOF
+
+    # Specify the TEAM_ID if the worker is not intended to be global worker
+    if  [[ "$TEAM_ID" != "global" ]]; then
+        echo "concourse_worker_team: ${TEAM_ID}" >> "${ENV}-worker.yml"
+    fi
 
     # Override worker runtime only if specified. If not using the default one from the stack located into ansible/default.yml
     if [ -n "$WORKER_RUNTIME" ]; then
