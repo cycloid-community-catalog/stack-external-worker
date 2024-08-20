@@ -471,11 +471,17 @@ Resources:
     Properties:
       VPCZoneIdentifier:
         Ref: Subnets
-      LaunchConfigurationName:
-        Fn::If:
-          - EnabledSpotInstances
-          - Ref: LaunchConfigSpotPrice
-          - Ref: LaunchConfig
+      LaunchTemplate:
+        LaunchTemplateId:
+          Fn::If:
+            - EnabledSpotInstances
+            - Ref: LaunchTemplateSpotPrice
+            - Ref: LaunchTemplate
+        Version:
+          Fn::If:
+            - EnabledSpotInstances
+            - !GetAtt LaunchTemplateSpotPrice.LatestVersionNumber
+            - !GetAtt LaunchTemplate.LatestVersionNumber
       DesiredCapacity:
         Ref: NumberOfWorkers
       MinSize:
@@ -530,213 +536,215 @@ Resources:
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
 
-  LaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Condition: DisabledSpotInstances
     Properties:
-      KeyName:
-        Ref: KeyName
-      ImageId:
-        Fn::FindInMap:
-        - AWSRegionArch2AMI
-        - Ref: AWS::Region
-        - image
-      SecurityGroups:
-      - Ref: InstanceSecurityGroup
-      - Ref: MetricsSecurityGroup
-      InstanceType:
-        Ref: InstanceType
-      IamInstanceProfile:
-        Ref: "WorkersInstanceProfile"
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeType: gp2
-            VolumeSize: '25'
-        - DeviceName: "/dev/xvdf"
-          Ebs:
-            VolumeSize:
-              Ref: VolumeSize
-            VolumeType: "gp2"
-            DeleteOnTermination: "true"
-      UserData:
-        Fn::Base64:
-          Fn::Join:
-          - ''
-          - - "#!/bin/bash -xe\n"
+      LaunchTemplateData:
+        KeyName:
+          Ref: KeyName
+        ImageId:
+          Fn::FindInMap:
+          - AWSRegionArch2AMI
+          - Ref: AWS::Region
+          - image
+        SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+        - Ref: MetricsSecurityGroup
+        InstanceType:
+          Ref: InstanceType
+        IamInstanceProfile:
+          Arn: !GetAtt WorkersInstanceProfile.Arn
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeType: gp2
+              VolumeSize: '25'
+          - DeviceName: "/dev/xvdf"
+            Ebs:
+              VolumeSize:
+                Ref: VolumeSize
+              VolumeType: "gp2"
+              DeleteOnTermination: "true"
+        UserData:
+          Fn::Base64:
+            Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
 
-            - "export PROJECT="
-            - Ref: AWS::StackName
-            - "\n"
+              - "export PROJECT="
+              - Ref: AWS::StackName
+              - "\n"
 
-            - "export ENV="
-            - Ref: EnvironmentTag
-            - "\n"
+              - "export ENV="
+              - Ref: EnvironmentTag
+              - "\n"
 
-            - "export ROLE="
-            - Ref: RoleTag
-            - "\n"
+              - "export ROLE="
+              - Ref: RoleTag
+              - "\n"
 
-            - "export SCHEDULER_API_ADDRESS='"
-            - Ref: SchedulerApiAddress
-            - "'\n"
+              - "export SCHEDULER_API_ADDRESS='"
+              - Ref: SchedulerApiAddress
+              - "'\n"
 
-            - "export SCHEDULER_HOST="
-            - Ref: SchedulerHost
-            - "\n"
+              - "export SCHEDULER_HOST="
+              - Ref: SchedulerHost
+              - "\n"
 
-            - "export SCHEDULER_PORT="
-            - Ref: SchedulerPort
-            - "\n"
+              - "export SCHEDULER_PORT="
+              - Ref: SchedulerPort
+              - "\n"
 
-            - "export TSA_PUBLIC_KEY='"
-            - Ref: TsaPublicKey
-            - "'\n"
+              - "export TSA_PUBLIC_KEY='"
+              - Ref: TsaPublicKey
+              - "'\n"
 
-            - "export WORKER_KEY='"
-            - Ref: WorkerKey
-            - "'\n"
+              - "export WORKER_KEY='"
+              - Ref: WorkerKey
+              - "'\n"
 
-            - "export WORKER_RUNTIME='"
-            - Ref: WorkerRuntime
-            - "'\n"
+              - "export WORKER_RUNTIME='"
+              - Ref: WorkerRuntime
+              - "'\n"
 
-            - "export WORKER_TAG='"
-            - Ref: WorkerTag
-            - "'\n"
+              - "export WORKER_TAG='"
+              - Ref: WorkerTag
+              - "'\n"
 
-            - "export WORKER_DNS_SERVER="
-            - Ref: WorkerDnsDerver
-            - "\n"
+              - "export WORKER_DNS_SERVER="
+              - Ref: WorkerDnsDerver
+              - "\n"
 
-            - "export TEAM_ID="
-            - Ref: TeamId
-            - "\n"
+              - "export TEAM_ID="
+              - Ref: TeamId
+              - "\n"
 
-            - "export STACK_BRANCH="
-            - Ref: StackBranch
-            - "\n"
+              - "export STACK_BRANCH="
+              - Ref: StackBranch
+              - "\n"
 
-            - "export VERSION="
-            - Ref: WorkerVersion
-            - "\n"
+              - "export VERSION="
+              - Ref: WorkerVersion
+              - "\n"
 
-            - "export DEBUG="
-            - Ref: DebugMode
-            - "\n"
+              - "export DEBUG="
+              - Ref: DebugMode
+              - "\n"
 
-            - |
-              export LOG_FILE="/var/log/user-data.log"
-              exec &> >(tee -a ${LOG_FILE})
+              - |
+                export LOG_FILE="/var/log/user-data.log"
+                exec &> >(tee -a ${LOG_FILE})
 
-              # Run the startup installation script.
-              # The $RANDOM variable is here used to avoid remote network caching.
-              curl -sSL "https://raw.githubusercontent.com/cycloid-community-catalog/stack-external-worker/${STACK_BRANCH}/extra/startup.sh?${RANDOM}" | bash -s aws
+                # Run the startup installation script.
+                # The $RANDOM variable is here used to avoid remote network caching.
+                curl -sSL "https://raw.githubusercontent.com/cycloid-community-catalog/stack-external-worker/${STACK_BRANCH}/extra/startup.sh?${RANDOM}" | bash -s aws
 
-  LaunchConfigSpotPrice:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  LaunchTemplateSpotPrice:
+    Type: AWS::EC2::LaunchTemplate
     Condition: EnabledSpotInstances
     Properties:
-      KeyName:
-        Ref: KeyName
-      ImageId:
-        Fn::FindInMap:
-        - AWSRegionArch2AMI
-        - Ref: AWS::Region
-        - image
-      SecurityGroups:
-      - Ref: InstanceSecurityGroup
-      - Ref: MetricsSecurityGroup
-      InstanceType:
-        Ref: InstanceType
-      SpotPrice:
-        Ref: InstanceSpotPrice
-      IamInstanceProfile:
-        Ref: "WorkersInstanceProfile"
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeType: gp2
-            VolumeSize: '25'
-        - DeviceName: "/dev/xvdf"
-          Ebs:
-            VolumeSize:
-              Ref: VolumeSize
-            VolumeType: "gp2"
-            DeleteOnTermination: "true"
-      UserData:
-        Fn::Base64:
-          Fn::Join:
-          - ''
-          - - "#!/bin/bash -xe\n"
+      LaunchTemplateData:
+        KeyName:
+          Ref: KeyName
+        ImageId:
+          Fn::FindInMap:
+          - AWSRegionArch2AMI
+          - Ref: AWS::Region
+          - image
+        SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+        - Ref: MetricsSecurityGroup
+        InstanceType:
+          Ref: InstanceType
+        SpotPrice:
+          Ref: InstanceSpotPrice
+        IamInstanceProfile:
+          Arn: !GetAtt WorkersInstanceProfile.Arn
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeType: gp2
+              VolumeSize: '25'
+          - DeviceName: "/dev/xvdf"
+            Ebs:
+              VolumeSize:
+                Ref: VolumeSize
+              VolumeType: "gp2"
+              DeleteOnTermination: "true"
+        UserData:
+          Fn::Base64:
+            Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
 
-            - "export PROJECT="
-            - Ref: AWS::StackName
-            - "\n"
+              - "export PROJECT="
+              - Ref: AWS::StackName
+              - "\n"
 
-            - "export ENV="
-            - Ref: EnvironmentTag
-            - "\n"
+              - "export ENV="
+              - Ref: EnvironmentTag
+              - "\n"
 
-            - "export ROLE="
-            - Ref: RoleTag
-            - "\n"
+              - "export ROLE="
+              - Ref: RoleTag
+              - "\n"
 
-            - "export SCHEDULER_API_ADDRESS='"
-            - Ref: SchedulerApiAddress
-            - "'\n"
+              - "export SCHEDULER_API_ADDRESS='"
+              - Ref: SchedulerApiAddress
+              - "'\n"
 
-            - "export SCHEDULER_HOST="
-            - Ref: SchedulerHost
-            - "\n"
+              - "export SCHEDULER_HOST="
+              - Ref: SchedulerHost
+              - "\n"
 
-            - "export SCHEDULER_PORT="
-            - Ref: SchedulerPort
-            - "\n"
+              - "export SCHEDULER_PORT="
+              - Ref: SchedulerPort
+              - "\n"
 
-            - "export TSA_PUBLIC_KEY='"
-            - Ref: TsaPublicKey
-            - "'\n"
+              - "export TSA_PUBLIC_KEY='"
+              - Ref: TsaPublicKey
+              - "'\n"
 
-            - "export WORKER_KEY='"
-            - Ref: WorkerKey
-            - "'\n"
+              - "export WORKER_KEY='"
+              - Ref: WorkerKey
+              - "'\n"
 
-            - "export WORKER_RUNTIME='"
-            - Ref: WorkerRuntime
-            - "'\n"
+              - "export WORKER_RUNTIME='"
+              - Ref: WorkerRuntime
+              - "'\n"
 
-            - "export WORKER_TAG='"
-            - Ref: WorkerTag
-            - "'\n"
+              - "export WORKER_TAG='"
+              - Ref: WorkerTag
+              - "'\n"
 
-            - "export WORKER_DNS_SERVER="
-            - Ref: WorkerDnsDerver
-            - "\n"
+              - "export WORKER_DNS_SERVER="
+              - Ref: WorkerDnsDerver
+              - "\n"
 
-            - "export TEAM_ID="
-            - Ref: TeamId
-            - "\n"
+              - "export TEAM_ID="
+              - Ref: TeamId
+              - "\n"
 
-            - "export STACK_BRANCH="
-            - Ref: StackBranch
-            - "\n"
+              - "export STACK_BRANCH="
+              - Ref: StackBranch
+              - "\n"
 
-            - "export VERSION="
-            - Ref: WorkerVersion
-            - "\n"
+              - "export VERSION="
+              - Ref: WorkerVersion
+              - "\n"
 
-            - "export DEBUG="
-            - Ref: DebugMode
-            - "\n"
+              - "export DEBUG="
+              - Ref: DebugMode
+              - "\n"
 
-            - |
-              export LOG_FILE="/var/log/user-data.log"
-              exec &> >(tee -a ${LOG_FILE})
+              - |
+                export LOG_FILE="/var/log/user-data.log"
+                exec &> >(tee -a ${LOG_FILE})
 
-              # Run the startup installation script.
-              # The $RANDOM variable is here used to avoid remote network caching.
-              curl -sSL "https://raw.githubusercontent.com/cycloid-community-catalog/stack-external-worker/${STACK_BRANCH}/extra/startup.sh?${RANDOM}" | bash -s aws
+                # Run the startup installation script.
+                # The $RANDOM variable is here used to avoid remote network caching.
+                curl -sSL "https://raw.githubusercontent.com/cycloid-community-catalog/stack-external-worker/${STACK_BRANCH}/extra/startup.sh?${RANDOM}" | bash -s aws
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
