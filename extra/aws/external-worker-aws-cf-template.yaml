@@ -657,8 +657,12 @@ Resources:
         - Ref: MetricsSecurityGroup
         InstanceType:
           Ref: InstanceType
-        SpotPrice:
-          Ref: InstanceSpotPrice
+        InstanceMarketOptions:
+          MarketType: spot
+          SpotOptions:
+            SpotInstanceType: "one-time"
+            MaxPrice:
+              Ref: InstanceSpotPrice
         IamInstanceProfile:
           Arn: !GetAtt WorkersInstanceProfile.Arn
         BlockDeviceMappings:
