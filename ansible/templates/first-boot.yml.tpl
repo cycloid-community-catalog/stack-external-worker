@@ -29,6 +29,7 @@
     # AWS
     - name: AWS
       block:
+
           - name: Retrieve metadata token
             uri:
               url: "http://169.254.169.254/latest/api/token"
@@ -53,7 +54,7 @@
             when: instance_metadata.status == 200
           - name: "Set default instance id"
             set_fact: instance_id="i-0000000"
-            when: metadatainstanceid.status != 200
+            when: instance_metadata.status != 200
       when: ansible_system_vendor == "Amazon EC2"
 
     # GCP
