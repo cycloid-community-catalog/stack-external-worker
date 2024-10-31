@@ -29,13 +29,31 @@
     # AWS
     - name: AWS
       block:
-          - name: Get the instance id
+          - name: Retrieve metadata token
             uri:
-              url: http://169.254.169.254/latest/meta-data/instance-id
+              url: "http://169.254.169.254/latest/api/token"
+              method: PUT
+              headers:
+                X-aws-ec2-metadata-token-ttl-seconds: "21600"
               return_content: yes
-            register: metadatainstanceid
-          - name: "Set facts instance id"
-            set_fact: instance_id="{{ metadatainstanceid.content }}"
+            register: metadata_token
+            ignore_errors: True
+          - name: Retrieve instance ID using metadata token
+            uri:
+              url: "http://169.254.169.254/latest/meta-data/instance-id"
+              headers:
+                X-aws-ec2-metadata-token: "{{ metadata_token.content }}"
+              return_content: yes
+            register: instance_metadata
+            ignore_errors: True
+            when: metadata_token.status == 200
+          - name: Set fact for instance ID
+            set_fact:
+              instance_id: "{{ instance_metadata.content }}"
+            when: instance_metadata.status == 200
+          - name: "Set default instance id"
+            set_fact: instance_id="i-0000000"
+            when: metadatainstanceid.status != 200
       when: ansible_system_vendor == "Amazon EC2"
 
     # GCP
