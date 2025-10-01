@@ -1,13 +1,4 @@
-- src: https://github.com/cycloidio/ansible-telegraf
-  version: master
-  name: cycloid.telegraf
-  scm: git
-
-- src: https://github.com/dj-wasabi/ansible-telegraf
-  version: master
-  name: dj-wasabi.telegraf
-  scm: git
-
+roles:
 - src: https://github.com/cycloidio/ansible-concourse
   version: master
   name: cycloid.concourse
@@ -28,3 +19,16 @@
   version: master
   name: cycloid.ebs-automatic-nvme-mapping
   scm: git
+
+collections:
+# Install a collection from Ansible Galaxy.
+- name: community.docker
+  # latest tag, can be updated
+  version: 4.6.0
+  source: https://galaxy.ansible.com
+
+# opensource collection for prometheus
+# https://github.com/prometheus-community/ansible
+- name: prometheus.prometheus
+  version: "0.27.3"
+  source: https://galaxy.ansible.com

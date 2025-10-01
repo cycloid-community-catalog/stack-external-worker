@@ -22,10 +22,8 @@ def test_mount_point(host):
 
 
 def test_services_running(host):
-    telegraf = host.process.filter(user='telegraf', comm='telegraf')
     concourse = host.process.filter(user='root', comm='concourse')
 
-    assert len(telegraf) >= 1
     assert len(concourse) >= 1
 
 
@@ -33,7 +31,7 @@ def test_concourse_worker_connected(host):
     assert host.file("/var/log/concourse-worker.log").contains('...failed to establish SSH connection...') is False
 
 
-def test_telegraf(host):
-    r = host.ansible("uri", "url=http://localhost:9100/metrics return_content=yes", check=False)
-
-    assert '# HELP' in r['content']
+#def test_telegraf(host):
+#    r = host.ansible("uri", "url=http://localhost:9100/metrics return_content=yes", check=False)
+#
+#    assert '# HELP' in r['content']
