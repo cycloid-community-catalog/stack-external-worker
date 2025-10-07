@@ -1,5 +1,4 @@
 ---
-
 #
 # Molecule test
 #
@@ -27,7 +26,7 @@
 
   vars_files:
     - "default.yml"
-    - [ "{{ env }}-worker.yml", "empty.yml" ]
+    - ["{{ env }}-worker.yml", "empty.yml"]
 
   pre_tasks:
     - name: Install package dependencies
@@ -86,12 +85,12 @@
 
   roles:
     - role: prometheus.prometheus.node_exporter
-          tags: node-exporter
-          when: enable_monitoring | default(true)
-          #vars:
-          # to add collectors use the var node_exporter_enabled_collectors
-          # full list of collectors at https://github.com/prometheus/node_exporter?tab=readme-ov-file#collectors
-          # role defaults at https://github.com/prometheus-community/ansible/blob/main/roles/node_exporter/defaults/main.yml
+      tags: node-exporter
+      when: enable_monitoring | default(true)
+      #vars:
+      # to add collectors use the var node_exporter_enabled_collectors
+      # full list of collectors at https://github.com/prometheus/node_exporter?tab=readme-ov-file#collectors
+      # role defaults at https://github.com/prometheus-community/ansible/blob/main/roles/node_exporter/defaults/main.yml
 
     - role: cycloid.ebs-automatic-nvme-mapping
       tags:

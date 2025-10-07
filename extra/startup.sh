@@ -317,8 +317,8 @@ EOF
         echo -e $WORKER_EXTRA_PARAMS >> "${ENV}-worker.yml"
     fi
 
-    ansible-galaxy role install -r requirements.yml -p roles -v --force
-    ansible-galaxy collection install -r requirements.yml -p collections -v --force
+    ansible-galaxy role install -r requirements.yml -p /etc/ansible/roles -v --force
+    ansible-galaxy collection install -r requirements.yml -v --force
 
     echo "Run packer.yml"
     ANSIBLE_FORCE_COLOR=1 PYTHONUNBUFFERED=1 ansible-playbook -e role=${ROLE} -e env=${ENV} -e project=${PROJECT} --connection local packer.yml
