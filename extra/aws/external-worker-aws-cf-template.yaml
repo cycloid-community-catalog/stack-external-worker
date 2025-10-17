@@ -110,7 +110,7 @@ Parameters:
     Type: Number
     Default: 150
   TeamId:
-    Description: This parameter can be obtained by clicking on your profile picture in Cycloid console, then organization settings/Metadata under the ci_team_member field.
+    Description: This parameter can be obtained by clicking on your profile picture in Cycloid console, then organization settings/Metadata under the ci_team_name field.
     Type: String
     MinLength: 1
   TsaPublicKey:
