@@ -19,14 +19,6 @@
     ami_project: "{{ project }}"
     ami_env: "{{ env }}"
   tasks:
-    - name: Additionnal pip requirements
-      pip:
-        name:
-          - awscli
-          - boto
-        state: latest
-
-    # AWS
     - name: AWS
       block:
 

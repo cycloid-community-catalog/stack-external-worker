@@ -232,7 +232,7 @@ _() {
       python3 -m pip install ansible==2.9.*
     else
       # Debian 12 and later
-      pipx install ansible==8.3.* --system-site-packages
+      pipx install ansible==12.1.* --system-site-packages
       pipx runpip ansible install -r requirements.txt
       export PATH="$PATH:$(pipx environment --value PIPX_LOCAL_VENVS)/ansible/bin"
     fi
