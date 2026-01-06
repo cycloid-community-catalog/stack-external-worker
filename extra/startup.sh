@@ -256,7 +256,10 @@ _() {
           python3 -m pip install --upgrade boto
         else
           # Debian 12 and later
-          pipx runpip ansible install awscli
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          apt-get install unzip -y
+          unzip awscliv2.zip
+          sudo ./aws/install
           pipx runpip ansible install --upgrade boto
         fi
         echo '[Boto]
@@ -274,6 +277,12 @@ use_endpoint_heuristics = True' > /etc/boto.cfg
 
         export AWS_DEFAULT_REGION=$(curl -sL http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
         export AWS_UNIQUE_ID=$(curl -L http://169.254.169.254/latest/meta-data/instance-id)
+        if [[ "${AWS_UNIQUE_ID}" != "" ]]; then
+            TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+            export AWS_UNIQUE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+            export AWS_DEFAULT_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+        fi
     fi
 
     if [[ "${INSTALL_USER}" == "root" ]]; then
