@@ -1040,42 +1040,42 @@ Parameters:
 
 Mappings:
   # Generate :
-  # From https://wiki.debian.org/Cloud/AmazonEC2Image/Bookworm
+  # From https://wiki.debian.org/Cloud/AmazonEC2Image/Trixie
   # export regions="ap-northeast-1 ap-northeast-2 ap-northeast-3 ap-south-1 ca-central-1 eu-central-1 eu-north-1 eu-south-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1 us-east-1 us-east-2 us-west-1 us-west-2"
-  # for region in $regions; do image=$(aws --region $region ec2 describe-images --owners 136693071363 --filters "Name=name,Values=debian-12-amd64-*" "Name=architecture,Values=x86_64" "Name=virtualization-type,Values=hvm" |  jq -r '.Images[] | "\(.CreationDate) \(.ImageId)"' | sort | awk 'END{print $2}'); echo -e "    $region:\n      image: $image"; done
+  # for region in $regions; do image=$(aws --region $region ec2 describe-images --owners 136693071363 --filters "Name=name,Values=debian-13-amd64-*" "Name=architecture,Values=x86_64" "Name=virtualization-type,Values=hvm" |  jq -r '.Images[] | "\(.CreationDate) \(.ImageId)"' | sort | awk 'END{print $2}'); echo -e "    $region:\n      image: $image"; done
   AWSRegionArch2AMI:
     ap-northeast-1:
-      image: ami-02bf7d9fdafa6a866
+      image: ami-067abcdced3e6fca4
     ap-northeast-2:
-      image: ami-0108cae27cd9cc7af
+      image: ami-0e73fb1d399d57010
     ap-northeast-3:
-      image: ami-0270e7ced76297c23
+      image: ami-0b1274704e4bc2e6c
     ap-south-1:
-      image: ami-0d1d58ce189dfbb25
+      image: ami-01f48344c8fabf710
     ca-central-1:
-      image: ami-08ae887d5922c62d9
+      image: ami-08f70945f2df22517
     eu-central-1:
-      image: ami-037808b7c78a7263f
+      image: ami-05f8f49103d44e055
     eu-north-1:
-      image: ami-0dbaacd43aeae9663
+      image: ami-04d31621d6b368b6b
     eu-south-1:
-      image: ami-0dc463d6dfdb4de56
+      image: ami-0b5bfa3dfc38f172c
     eu-west-1:
-      image: ami-0ae2703824063fcf1
+      image: ami-0094a09a8442e888d
     eu-west-2:
-      image: ami-07c6f4cfe050acb11
+      image: ami-03c261dc500ac47e9
     eu-west-3:
-      image: ami-0a64ca4dc527cbd43
+      image: ami-0e0cf09f194b94a22
     sa-east-1:
-      image: ami-07961f7d701aae8fb
+      image: ami-0133367cf7c804ed8
     us-east-1:
-      image: ami-0109c48272c1a1186
+      image: ami-0f6f4e22c88429d17
     us-east-2:
-      image: ami-0c631cb6ceaa64bcd
+      image: ami-054f4f14d58fb695c
     us-west-1:
-      image: ami-07933a20b2bfa7ba5
+      image: ami-050808969f9040c4c
     us-west-2:
-      image: ami-07b2d881c67e4c30e
+      image: ami-06360100e7f215313
 
 Conditions:
   EnabledScheduling: !Equals [!Ref ScheduledWorkersEnabled, "true"]

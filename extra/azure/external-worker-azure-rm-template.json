@@ -361,8 +361,8 @@
     "namePrefix": "[toLower(concat(parameters('organizationTag'), '-', parameters('projectTag'), '-', parameters('environmentTag')))]",
     "imageRef": {
       "publisher": "Debian",
-      "offer": "debian-12",
-      "sku": "12",
+      "offer": "debian-13",
+      "sku": "13",
       "version": "latest"
     },
     "instanceNsgName": "[concat(variables('namePrefix'), '-nsg')]",
