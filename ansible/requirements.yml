@@ -27,7 +27,7 @@ collections:
     type: git
     # latest tag, can be updated
     version: 5.0.4
-    source: https://galaxy.ansible.com
+    # source: https://galaxy.ansible.com
 
   # opensource collection for prometheus
   # https://github.com/prometheus-community/ansible
@@ -35,4 +35,4 @@ collections:
   - source: https://github.com/prometheus-community/ansible
     type: git
     version: "0.27.3"
-    source: https://galaxy.ansible.com
+    # source: https://galaxy.ansible.com
