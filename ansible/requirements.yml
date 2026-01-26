@@ -23,7 +23,8 @@ roles:
 collections:
   # Install a collection from Ansible Galaxy.
   # - name: community.docker
-  - src: https://github.com/ansible-collections/community.docker
+  - source: https://github.com/ansible-collections/community.docker
+    type: git
     # latest tag, can be updated
     version: 5.0.4
     source: https://galaxy.ansible.com
@@ -31,6 +32,7 @@ collections:
   # opensource collection for prometheus
   # https://github.com/prometheus-community/ansible
   # - name: prometheus.prometheus
-  - src: https://github.com/prometheus-community/ansible
+  - source: https://github.com/prometheus-community/ansible
+    type: git
     version: "0.27.3"
     source: https://galaxy.ansible.com
