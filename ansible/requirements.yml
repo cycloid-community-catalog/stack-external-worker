@@ -24,7 +24,7 @@ collections:
   # Install a collection from Ansible Galaxy.
   - name: community.docker
     # latest tag, can be updated
-    version: 4.6.0
+    version: 5.0.4
     source: https://galaxy.ansible.com
 
   # opensource collection for prometheus
