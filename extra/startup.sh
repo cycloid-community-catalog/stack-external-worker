@@ -233,16 +233,40 @@ _() {
     rm -rf stack-external-worker
     # Never prompt for credentials: on a public repo a network/DNS hiccup makes
     # git ask for a username, which hangs/fails in the non-interactive
-    # cloud-init context. Fail fast instead and retry with backoff to absorb
-    # transient errors (network not ready yet, GitHub throttling, ...).
+    # cloud-init context. Fail fast instead.
     export GIT_TERMINAL_PROMPT=0
-    for i in $(seq 1 5); do
+
+    # S3 fallback archive URL. GitHub now throttles unauthenticated clones
+    # ("GitHub is temporarily limiting some unauthenticated downloads ..."),
+    # which breaks worker boot when a whole ASG pool clones at once behind the
+    # same egress IP. We first try to git clone (3 attempts), then fall back to
+    # a tarball hosted on a public S3 bucket. See extra/README.md to publish it.
+    STACK_S3_URL=${STACK_S3_URL:-"https://s3-eu-west-1.amazonaws.com/cycloid-cloudformation/stack-external-worker-${STACK_BRANCH}.tar.gz"}
+
+    # Try git clone up to 3 times.
+    for i in $(seq 1 3); do
         git clone -b ${STACK_BRANCH} https://github.com/cycloid-community-catalog/stack-external-worker && break
-        echo "git clone failed (attempt $i/5), retrying in $((i * 15))s..." >&2
+        echo "git clone failed (attempt $i/3), retrying in $((i * 15))s..." >&2
         sleep $((i * 15))
     done
+
+    # Fallback: download the tarball from the public S3 bucket.
     if [ ! -d stack-external-worker ]; then
-        echo "error: failed to clone stack-external-worker after 5 attempts" >&2
+        echo "### git clone failed, falling back to S3 archive ${STACK_S3_URL}" >&2
+        for i in $(seq 1 3); do
+            if curl -fsSL "${STACK_S3_URL}" -o /tmp/stack-external-worker.tar.gz; then
+                mkdir -p stack-external-worker
+                tar -xzf /tmp/stack-external-worker.tar.gz -C stack-external-worker --strip-components=1
+                rm -f /tmp/stack-external-worker.tar.gz
+                break
+            fi
+            echo "S3 archive download failed (attempt $i/3), retrying in $((i * 15))s..." >&2
+            sleep $((i * 15))
+        done
+    fi
+
+    if [ ! -d stack-external-worker/ansible ]; then
+        echo "error: failed to fetch stack-external-worker from git and S3 fallback" >&2
         exit 3
     fi
     cd stack-external-worker/ansible
