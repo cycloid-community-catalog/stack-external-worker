@@ -209,6 +209,15 @@ _() {
     # This is mostly the case with agent like waagent on Azure.
     timeout 300 bash -c "while pgrep apt > /dev/null; do sleep 1; done"
 
+    # In cloud-init the script may start before the network/DNS stack is fully
+    # up. Wait for outbound connectivity + DNS resolution before doing any
+    # external access (apt, git clone, curl), otherwise those fail with errors
+    # like "could not read Username for 'https://github.com': No such device or
+    # address" even for public repositories.
+    echo "### waiting for network connectivity"
+    timeout 300 bash -c 'until getent hosts github.com > /dev/null 2>&1 && curl -sSf -o /dev/null https://github.com; do echo "waiting for network/DNS..."; sleep 5; done' \
+        || echo "warning: network connectivity check timed out, continuing anyway" >&2
+
     apt-get update
     DEBIAN_VERSION=$(lsb_release -r -s)
     if [ "$DEBIAN_VERSION" -lt "12" ]; then
@@ -222,7 +231,20 @@ _() {
     cd /opt/
     # Remove potential existing file, in case you want to re-run the setup script on the same instance
     rm -rf stack-external-worker
-    git clone -b ${STACK_BRANCH} https://github.com/cycloid-community-catalog/stack-external-worker
+    # Never prompt for credentials: on a public repo a network/DNS hiccup makes
+    # git ask for a username, which hangs/fails in the non-interactive
+    # cloud-init context. Fail fast instead and retry with backoff to absorb
+    # transient errors (network not ready yet, GitHub throttling, ...).
+    export GIT_TERMINAL_PROMPT=0
+    for i in $(seq 1 5); do
+        git clone -b ${STACK_BRANCH} https://github.com/cycloid-community-catalog/stack-external-worker && break
+        echo "git clone failed (attempt $i/5), retrying in $((i * 15))s..." >&2
+        sleep $((i * 15))
+    done
+    if [ ! -d stack-external-worker ]; then
+        echo "error: failed to clone stack-external-worker after 5 attempts" >&2
+        exit 3
+    fi
     cd stack-external-worker/ansible
 
     if [ "$DEBIAN_VERSION" -lt "12" ]; then
