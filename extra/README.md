@@ -22,19 +22,18 @@ bucket. This is needed because GitHub throttles unauthenticated clones, which
 breaks worker boot when a whole ASG pool clones at once.
 
 Publish (or refresh) the archive after any change on the stack. Run from the
-root of the repository, replacing `master` by the branch you deploy:
+root of the repository:
 
 ```bash
 export AWS_ACCESS_KEY_ID=$(vault read -field=access_key secret/$CUSTOMER/aws)
 export AWS_SECRET_ACCESS_KEY=$(vault read -field=secret_key secret/$CUSTOMER/aws)
 
-BRANCH=master
-git archive --format=tar.gz --prefix=stack-external-worker/ -o /tmp/stack-external-worker-${BRANCH}.tar.gz ${BRANCH}
-aws s3 cp /tmp/stack-external-worker-${BRANCH}.tar.gz s3://cycloid-cloudformation/
+git archive --format=tar.gz --prefix=stack-external-worker/ -o /tmp/stack-external-worker-master.tar.gz master
+aws s3 cp /tmp/stack-external-worker-master.tar.gz s3://cycloid-cloudformation/
 ```
 
 > Note: the archive is served from
-> `https://s3-eu-west-1.amazonaws.com/cycloid-cloudformation/stack-external-worker-${STACK_BRANCH}.tar.gz`,
+> `https://s3-eu-west-1.amazonaws.com/cycloid-cloudformation/stack-external-worker-master.tar.gz`,
 > matching the `STACK_S3_URL` default in `extra/startup.sh`.
 
 

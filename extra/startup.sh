@@ -241,7 +241,7 @@ _() {
     # which breaks worker boot when a whole ASG pool clones at once behind the
     # same egress IP. We first try to git clone (3 attempts), then fall back to
     # a tarball hosted on a public S3 bucket. See extra/README.md to publish it.
-    STACK_S3_URL=${STACK_S3_URL:-"https://s3-eu-west-1.amazonaws.com/cycloid-cloudformation/stack-external-worker-${STACK_BRANCH}.tar.gz"}
+    STACK_S3_URL=${STACK_S3_URL:-"https://s3-eu-west-1.amazonaws.com/cycloid-cloudformation/stack-external-worker-master.tar.gz"}
 
     # Try git clone up to 3 times.
     for i in $(seq 1 3); do
